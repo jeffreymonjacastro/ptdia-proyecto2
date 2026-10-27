@@ -1,0 +1,23 @@
+sequenceDiagram
+    actor U as Usuario
+    participant F as React
+    participant A as FastAPI
+    participant G as Stable Diffusion
+    participant M as Qwen 3.5 9B
+    participant D as PostgreSQL
+
+    U->>F: Sube foto y escribe prompt
+    F->>A: Foto temporal y prompt
+    A->>G: Foto y cinco estilos
+    G-->>A: Cinco imágenes en memoria
+    A->>M: Foto y cinco imágenes
+    M-->>A: Descripciones visuales
+    A->>D: Guarda prompts y metadatos
+    A-->>F: Imágenes y descripciones
+    U->>F: Acepta o rechaza cada opción
+    F->>A: Cinco decisiones
+    A->>D: Guarda decisiones
+    A->>M: Decisiones y descripciones
+    M-->>A: Resumen
+    A->>D: Guarda resumen validado
+    A-->>F: Muestra resumen

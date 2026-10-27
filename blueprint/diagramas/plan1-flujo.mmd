@@ -1,0 +1,9 @@
+flowchart TB
+    U["Usuario carga imagen"] --> P["Validar y preprocesar"]
+    P --> G["Generador img2img"]
+    G --> V["Cinco variaciones con identificadores 1 a 5"]
+    V --> H["Aceptar o rechazar cada una"]
+    H --> D["Registro estructurado"]
+    D --> A["Agente con LLM"]
+    A --> C["Validar correspondencia con el registro"]
+    C --> R["Mostrar y guardar resumen"]
