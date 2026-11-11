@@ -6,5 +6,6 @@
       "name": "other"
     }
   ],
-  "description": "Private model asset supplied by the user: JJsLuxuryBedroom_XL.safetensors. SDXL Base 1.0 LoRA. Trigger from embedded training metadata: Luxury Bedroom. Original author rights and license apply."
+  "description": "Five SDXL Base 1.0 interior LoRA assets: Attic.safetensors, Cyberpunk.safetensors, Japanese.safetensors, Luxury.safetensors and NeoClassic.safetensors. Select a filename in the companion SDXL + Qwen3-VL notebook. Luxury is the previously supplied JJsLuxuryBedroom_XL asset, renamed Luxury.safetensors. Original authors retain their rights; each model remains subject to its original license. No additional redistribution license is granted by this dataset.",
+  "isPrivate": false
 }

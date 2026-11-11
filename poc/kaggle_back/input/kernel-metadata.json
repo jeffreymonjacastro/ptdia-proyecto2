@@ -1,10 +1,10 @@
 {
-  "id": "jeffreyamc/plania-p2-sdxl-luxury-bedroom-y-qwen3-vl-v5",
-  "title": "PlanIA P2 SDXL Luxury Bedroom y Qwen3-VL v5",
+  "id": "jeffreyamc/plania-p2-sdxl-lora-bedroom-y-qwen3-vl-v5",
+  "title": "PlanIA P2 SDXL + LoRA Bedroom y Qwen3-VL v5",
   "code_file": "sdxl_qwen_fastapi_ngrok_lora.ipynb",
   "language": "python",
   "kernel_type": "notebook",
-  "is_private": true,
+  "is_private": false,
   "enable_gpu": true,
   "enable_internet": true,
   "machine_shape": "NvidiaTeslaT4",
@@ -13,5 +13,6 @@
   ],
   "competition_sources": [],
   "kernel_sources": [],
-  "model_sources": []
+  "model_sources": [],
+  "id_no": 144312352
 }

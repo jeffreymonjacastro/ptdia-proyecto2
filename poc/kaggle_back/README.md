@@ -1,6 +1,6 @@
-# Backend en Kaggle: SDXL + LoRA + Qwen3-VL
+# Backend en Kaggle: SDXL + cinco LoRA + Qwen3-VL
 
-Guía para ejecutar [sdxl_qwen_fastapi_ngrok_lora.ipynb](input/sdxl_qwen_fastapi_ngrok_lora.ipynb) desde el editor de Kaggle. SDXL transforma una imagen con el LoRA Luxury Bedroom en la primera GPU; Qwen3-VL describe el resultado en la segunda. FastAPI publica el servicio mediante ngrok.
+Guía para ejecutar [sdxl_qwen_fastapi_ngrok_lora.ipynb](input/sdxl_qwen_fastapi_ngrok_lora.ipynb) desde el editor de Kaggle. SDXL transforma una imagen con el LoRA seleccionado en la primera GPU; Qwen3-VL describe el resultado en la segunda. FastAPI publica el servicio mediante ngrok.
 
 ## 1. Importar el notebook
 
@@ -10,9 +10,17 @@ Guía para ejecutar [sdxl_qwen_fastapi_ngrok_lora.ipynb](input/sdxl_qwen_fastapi
 
 ## 2. Adjuntar el LoRA
 
-En **Add Input**, adjunta el dataset privado [jeffreyamc/plania-p2-jjs-luxury-bedroom-xl](https://www.kaggle.com/datasets/jeffreyamc/plania-p2-jjs-luxury-bedroom-xl). Necesitas una cuenta con acceso al dataset.
+En **Add Input**, adjunta la última versión del dataset [jeffreyamc/plania-p2-jjs-luxury-bedroom-xl](https://www.kaggle.com/datasets/jeffreyamc/plania-p2-jjs-luxury-bedroom-xl).
 
-Si usas tu propio dataset, créalo en Kaggle subiendo el archivo [JJsLuxuryBedroom_XL.safetensors](dataset/JJsLuxuryBedroom_XL.safetensors) y adjúntalo al notebook. Conserva ese nombre: el código busca el archivo dentro de `/kaggle/input`, sin depender del nombre del dataset.
+Contiene cinco archivos: `Attic.safetensors`, `Cyberpunk.safetensors`, `Japanese.safetensors`, `Luxury.safetensors` y `NeoClassic.safetensors`. También están en la carpeta local [dataset](dataset/). El archivo original `JJsLuxuryBedroom_XL.safetensors` ahora se llama `Luxury.safetensors`.
+
+En la sección **3.1** del notebook, cambia esta variable por el nombre exacto del archivo que quieras cargar:
+
+```python
+lora_filename = "Luxury.safetensors"
+```
+
+Solo se carga un LoRA a la vez. Para cambiarlo durante una sesión, detén el servidor, modifica la variable, ejecuta la celda 3.1 y vuelve a ejecutar la última celda. Ajusta el prompt al estilo seleccionado; para Luxury usa `Luxury Bedroom`.
 
 ## 3. Crear los secrets manualmente
 
@@ -27,33 +35,13 @@ Habilita ambos secretos para este notebook mediante su casilla o interruptor de 
 
 Kaggle documenta este flujo y la lectura mediante `UserSecretsClient` en su [guía oficial de Secrets](https://github.com/Kaggle/kaggle-cli/blob/main/docs/kernels.md#using-secrets-in-kernels). Cada usuario debe configurar sus propias credenciales.
 
-### Ajustar el nombre del secreto de ngrok
-
-El notebook del repositorio usa actualmente `NGROK_AUTHTOKEN`. Para utilizar el secreto **`NGROK_TOKEN`** creado arriba, en la celda **«Leer el secreto y seleccionar las GPUs»** reemplaza este bloque:
-
-```python
-ngrok_token = os.getenv("NGROK_AUTHTOKEN")
-if not ngrok_token:
-    try:
-        ngrok_token = UserSecretsClient().get_secret("NGROK_AUTHTOKEN")
-    except Exception:
-        raise RuntimeError("Agrega NGROK_AUTHTOKEN en Kaggle Secrets y habilítalo para este notebook.") from None
-```
-
-por:
-
-```python
-ngrok_token = secrets.get_secret("NGROK_TOKEN")
-```
-
-Mantén la lectura de Hugging Face que ya incluye esa misma celda:
+El notebook lee ambos secretos directamente con `UserSecretsClient`:
 
 ```python
 secrets = UserSecretsClient()
 os.environ["HF_TOKEN"] = secrets.get_secret("HF_TOKEN")
+ngrok_token = secrets.get_secret("NGROK_TOKEN")
 ```
-
-La variable `ngrok_token` se utiliza después para autenticar el túnel. No es necesario modificar la última celda.
 
 ## 4. Ejecutar las celdas
 
@@ -88,15 +76,15 @@ Abre `https://<dominio-asignado-por-ngrok>/docs`:
 
 4. Pulsa **Execute**. La respuesta contiene `image_base64` (imagen PNG), `image_mime_type` y `description` (descripción en español).
 
-Incluye `Luxury Bedroom` en el prompt para activar el estilo del LoRA. La API admite imágenes de hasta **10 MiB y 25 megapíxeles**, prompts de **1 a 2000 caracteres** y una generación simultánea. Una segunda solicitud durante una generación recibe HTTP `429`.
+Si eliges Luxury, incluye `Luxury Bedroom` en el prompt para activar su estilo. La API admite imágenes de hasta **10 MiB y 25 megapíxeles**, prompts de **1 a 2000 caracteres** y una generación simultánea. Una segunda solicitud durante una generación recibe HTTP `429`.
 
 ## Problemas frecuentes
 
 | Problema | Qué revisar |
 | --- | --- |
-| Error al leer un secret | Comprueba el nombre exacto (`HF_TOKEN` o `NGROK_TOKEN`), el permiso de acceso al notebook y el ajuste del bloque de ngrok indicado arriba. |
+| Error al leer un secret | Comprueba el nombre exacto (`HF_TOKEN` o `NGROK_TOKEN`) y el permiso de acceso al notebook. |
 | Error de dos GPU | Selecciona **GPU T4 ×2** y reinicia la sesión si cambiaste el acelerador. |
-| No se encuentra el LoRA | Adjunta el dataset y verifica que contenga `JJsLuxuryBedroom_XL.safetensors`. |
+| No se encuentra el LoRA | Adjunta el dataset y verifica que contenga el archivo elegido en `lora_filename`. |
 | Error al descargar modelos | Comprueba Internet, los permisos de `HF_TOKEN` y el mensaje de Hugging Face sobre el modelo solicitado. |
 | La URL deja de responder | Comprueba que la sesión y Uvicorn sigan activos; si reiniciaste, consulta la URL impresa de nuevo. |
 
