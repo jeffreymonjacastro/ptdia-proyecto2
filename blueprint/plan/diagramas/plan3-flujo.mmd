@@ -1,0 +1,37 @@
+sequenceDiagram
+    actor U as Usuario
+    participant F as React
+    participant A as FastAPI en Kaggle
+    participant G as SDXL y LoRA
+    participant M as Qwen 3.5 4B
+    participant D as Historial y archivos privados
+    U->>F: Foto de dormitorio y preferencias
+    F->>A: Entrada y consentimiento
+    A->>G: Original y cinco estilos
+    G-->>A: Cinco propuestas
+    A->>M: Original y propuestas
+    M-->>A: Descripciones visibles
+    A->>D: Original, versiones y metadatos
+    A-->>F: Cinco propuestas identificadas
+    loop Evaluar cada variacion hasta aceptarla o pausar
+        U->>F: Decision y motivo opcional
+        F->>A: ID de version y decision
+        A->>D: Registrar decision
+        alt Version rechazada
+            A->>G: Regenerar solo ese estilo desde el original
+            G-->>A: Nueva version
+            A->>M: Original y nueva version
+            M-->>A: Descripcion
+            A->>D: Nueva version pendiente
+            A-->>F: Actualizar solo esa variacion
+        else Version aceptada
+            A-->>F: Conservar version aceptada
+        end
+    end
+    U->>F: Solicitar resumen final
+    F->>A: Resumir sesion
+    A->>D: Leer versiones y decisiones
+    A->>M: Historial estructurado y descripciones
+    M-->>A: Resumen con IDs
+    A->>D: Guardar resumen validado
+    A-->>F: Resumen para revision del usuario
