@@ -3,7 +3,7 @@ import react from '@vitejs/plugin-react'
 
 const proxy = {
   '/generate': {
-    target: 'https://throat-pacify-dice.ngrok-free.dev',
+    target: 'http://localhost:8000',
     changeOrigin: true,
     headers: { 'ngrok-skip-browser-warning': 'true' },
   },
