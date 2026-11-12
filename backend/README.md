@@ -77,4 +77,18 @@ Stop the demo notebook and use the same database URL, Supabase URL, private buck
 
 ## Configure a future style
 
-Copy [the default style catalog](src/bedroom_backend/styles.json) to a separate JSON file and point `BEDROOM_CATALOG` to it. Add the custom profile with its SDXL-compatible weights, trigger phrase, version or SHA-256, and inference parameters. Put its ID in one of the five positions of `active`. Keep any old adapters available while existing sessions can still regenerate against their saved settings. The API continues to return five variations.
+Copy [the default style catalog](src/bedroom_backend/styles.json) to a separate JSON file and point `BEDROOM_CATALOG` to it. Add the custom profile with its SDXL-compatible weights, trigger phrase, version or SHA-256, and inference parameters. If you copy an existing profile, replace or remove its SHA-256. Put its ID in one of the five positions of `active`. Keep any old adapters available while existing sessions can still regenerate against their saved settings. The API continues to return five variations.
+
+
+## GPU smoke evidence
+
+The [private Kaggle smoke run, version 4](https://www.kaggle.com/code/badexample/plania-bedroom-backend-smoke) completed on two Tesla T4s. It classified the fixture as a bedroom, produced all five styles with one active adapter per pass, regenerated Attic, and produced a grounded summary with five acceptances and the recorded Attic rejection. The model pins and adapter hashes are recorded in the code and catalog. The run used the model implementation delivered in branch commit `b7e710d`.
+
+| Stage | Measured latency | Peak allocated GPU memory |
+|---|---:|---:|
+| SDXL per proposal, including adapter switch | 29.6–35.1 s | 9.41 GiB |
+| Qwen comparison per proposal | 20.1–22.4 s | 8.78 GiB |
+| Qwen decision summary | 48.7 s | 9.49 GiB |
+| Cold smoke run, including model initialization and regeneration | 533.0 s | |
+
+The five proposals and one regeneration totaled 5,180,265 bytes. With the resized JPEG fixture, this run represents about 5.23 MB of private image data before any additional versions. It used Kaggle's PyTorch 2.11.0+cu130 with Transformers 5.20.2, Diffusers 0.42.1, PEFT 0.21.2, and Accelerate 1.15.0. Model smoke output is separate from the end-to-end Supabase and ngrok demo checks above.
