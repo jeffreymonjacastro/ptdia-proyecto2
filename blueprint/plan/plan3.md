@@ -18,7 +18,7 @@
 - La entrada es una fotografía de un dormitorio, con preferencias opcionales sobre colores, materiales, iluminación o elementos que el usuario desea conservar. Si el texto está vacío, se emplean los prompts del catálogo.
 - La salida inicial contiene **exactamente cinco imágenes estáticas** del mismo dormitorio: Luxury, Japanese, Neo Classic, Attic y Cyberpunk. Se utiliza SDXL como única base generativa y una LoRA compatible por variación.
 - Conservar distribución, perspectiva, cama, puertas, ventanas y geometría es un **objetivo por evaluar**, no una garantía. Las propuestas son referencias de decoración y requieren revisión del diseñador; no son planos ni certificaciones de viabilidad constructiva.
-- El usuario acepta o rechaza cada versión y puede indicar motivos. Un rechazo conserva su registro y dispara una regeneración de **esa variación únicamente**, manteniendo las aceptadas. La nueva versión comienza pendiente; se repite hasta aceptación o hasta que el usuario pause o abandone la sesión.
+- El usuario acepta o rechaza cada versión. Al rechazar, la interfaz solicita un motivo obligatorio antes de confirmar; al aceptar, el motivo es opcional. Un rechazo conserva su registro y dispara una regeneración de **esa variación únicamente**, manteniendo las aceptadas. La nueva versión comienza pendiente; se repite hasta aceptación o hasta que el usuario pause o abandone la sesión.
 - Qwen describe lo visible y resume aceptaciones y rechazos por ID de versión. Los motivos del usuario se distinguen de las observaciones del modelo. El resumen final requiere cinco versiones vigentes aceptadas e incluye también los rechazos históricos relevantes.
 - Se conserva evidencia autorizada de la fotografía original, propuestas, versiones, decisiones y resumen, retomando el informe original. Esto reemplaza la política de imágenes solo temporales de `plan2`; exige consentimiento, acceso privado y eliminación.
 - Se deben justificar datos y preprocesamiento, medir calidad, diversidad, conservación espacial, coherencia del resumen y usabilidad, e incluir limitaciones y ética. La evaluación de uso contempla **10 usuarios**, con resultados reales y tamaño efectivo declarado.
@@ -53,7 +53,7 @@ sequenceDiagram
     A->>D: Original, versiones y metadatos
     A-->>F: Cinco propuestas identificadas
     loop Evaluar cada variacion hasta aceptarla o pausar
-        U->>F: Decision y motivo opcional
+        U->>F: Decision y motivo (obligatorio al rechazar)
         F->>A: ID de version y decision
         A->>D: Registrar decision
         alt Version rechazada
@@ -135,7 +135,7 @@ Propuesta mínima de tablas:
 - `sessions`: `id`, `user_id`, clave de la foto original, preferencias, consentimiento, fecha y estado (`generating`, `ready`, `failed`, `completed`, `paused`).
 - `variations`: `id`, `session_id`, `position` de 1 a 5, `style` y `current_version_id`; posición única por sesión.
 - `image_versions`: `id`, `variation_id`, número de versión, clave privada de imagen, prompt efectivo, semilla, parámetros, revisiones de base/LoRA/LLM, descripción y fecha; versiones anteriores inmutables.
-- `decisions`: `id`, `image_version_id`, `accepted` o `rejected`, motivo opcional y fecha. Conservar eventos si cambia una decisión; ausencia de decisión vigente significa pendiente.
+- `decisions`: `id`, `image_version_id`, `accepted` o `rejected`, motivo obligatorio al rechazar y opcional al aceptar, y fecha. Conservar eventos si cambia una decisión; ausencia de decisión vigente significa pendiente.
 - `summaries`: `session_id`, revisión del historial, IDs aceptados/rechazados y texto validado; nueva decisión o versión invalida su vigencia.
 
 Toda lectura y escritura verifica el propietario de la sesión. El lote inicial solo pasa a `ready` con cinco resultados válidos y estilos únicos. La sesión solo pasa a `completed` cuando las cinco versiones actuales están aceptadas. Guardar una nueva versión y actualizar su puntero como una sola operación lógica; si falla el guardado, no reemplazar la versión vigente y limpiar el archivo huérfano.
@@ -148,7 +148,7 @@ Toda lectura y escritura verifica el propietario de la sesión. El lote inicial 
 | `POST /generate`                                                           | Mantener temporalmente el contrato de una imagen para pruebas de Fabryzzio y Jeffrey; no presentarlo como el flujo final de cinco opciones.                                                                       |
 | `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout` | Acceso individual con contraseñas protegidas y sesión segura.                                                                                                                                                     |
 | `POST /api/generations`                                                    | Recibe foto de dormitorio, preferencias opcionales y consentimiento; crea sesión y cinco variaciones con IDs, versiones, imágenes privadas y descripciones. Devuelve error explícito si el lote queda incompleto. |
-| `PUT /api/generations/{id}/decisions/{version_id}`                         | Registra decisión y motivo opcional; comprueba versión vigente y propietario. Aceptar conserva la imagen; rechazar agenda solo su regeneración. Repetir una petición no debe duplicarla.                          |
+| `PUT /api/generations/{id}/decisions/{version_id}`                         | Registra decisión y motivo (no vacío si rechaza); comprueba versión vigente y propietario. Aceptar conserva la imagen; rechazar agenda solo su regeneración. Repetir una petición no debe duplicarla.                          |
 | `POST /api/generations/{id}/variations/{position}/retry`                   | Reintenta una regeneración fallida del estilo rechazado; conserva versiones y decisiones anteriores. No reemplaza una opción aceptada.                                                                            |
 | `POST /api/generations/{id}/summary`                                       | Exige cinco versiones actuales aceptadas; resume también el historial de rechazos y valida IDs, decisiones y revisión.                                                                                            |
 | `GET /api/generations`, `GET /api/generations/{id}`                        | Historial propio con versiones, decisiones y acceso autenticado a imágenes privadas.                                                                                                                              |
@@ -270,7 +270,7 @@ Plazo disponible: **7 días**. Los entregables se trabajan en paralelo entre los
 ![Mockup del frontend: chat por cliente con cinco estilos y feedback](../design/chat-dormitorios-v1.png)
 
 - [ ] Crear acceso, carga de foto, consentimiento y preferencias opcionales. Mostrar de forma destacada **«Solo habitaciones / dormitorios»** y un ejemplo de entrada apropiada.
-- [ ] Presentar original y cinco tarjetas con nombre del estilo, ID/versión visible para trazabilidad, descripción, aceptación, rechazo y motivo opcional; toda versión nueva comienza pendiente.
+- [ ] Presentar original y cinco tarjetas con nombre del estilo, ID/versión visible para trazabilidad, descripción, aceptación y rechazo. Al rechazar, solicitar un motivo obligatorio y confirmar antes de registrar la decisión y regenerar; al aceptar, el motivo es opcional. Toda versión nueva comienza pendiente.
 - [ ] Al rechazar, indicar que se regenera solo esa propuesta. Mantener aceptadas visibles, mostrar progreso por tarjeta y permitir reintento si falla. Evitar botones que registren dos veces la misma acción.
 - [ ] Permitir pausar, recuperar historial privado y solicitar el resumen final al completar cinco aceptaciones. Mostrar rechazos históricos y cambios sin atribuir motivos inexistentes.
 - [ ] Completar un recorrido con API real: preferencias vacías, imagen inválida u otro espacio, rechazo y nueva versión, recarga, desconexión del túnel, recuperación y eliminación de sesión.

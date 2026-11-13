@@ -45,7 +45,7 @@ test('regenerar añade una versión pendiente y conserva la rechazada y su motiv
 test('un rechazo duplicado y una respuesta obsoleta no duplican eventos o versiones', () => {
   let p = project()
   const id = currentVersion(p.proposals[0]).id
-  const action = { type: 'decide' as const, position: 1, versionId: id, status: 'rejected' as const, reason: '' }
+  const action = { type: 'decide' as const, position: 1, versionId: id, status: 'rejected' as const, reason: 'No encaja con el diseño.' }
   p = updateProject(updateProject(p, action), action)
   assert.equal(p.events.length, 1)
   p = updateProject(p, { type: 'regenerated', position: 1, versionId: id })
@@ -58,7 +58,7 @@ test('un rechazo duplicado y una respuesta obsoleta no duplican eventos o versio
 test('fallar y reintentar conserva el rechazo sin duplicarlo', () => {
   let p = project()
   const id = currentVersion(p.proposals[0]).id
-  p = updateProject(p, { type: 'decide', position: 1, versionId: id, status: 'rejected', reason: '' })
+  p = updateProject(p, { type: 'decide', position: 1, versionId: id, status: 'rejected', reason: 'No encaja con el diseño.' })
   p = updateProject(p, { type: 'generation-failed', position: 1, versionId: id })
   assert.equal(p.proposals[0].generation, 'failed')
   p = updateProject(p, { type: 'retry', position: 1, versionId: id })
@@ -81,7 +81,7 @@ test('de las 32 combinaciones solo cinco aceptaciones habilitan el resumen final
   for (let mask = 0; mask < 32; mask++) {
     let p = project()
     for (const proposal of p.proposals) {
-      p = updateProject(p, { type: 'decide', position: proposal.position, versionId: currentVersion(proposal).id, status: mask & (1 << (proposal.position - 1)) ? 'accepted' : 'rejected', reason: '' })
+      p = updateProject(p, { type: 'decide', position: proposal.position, versionId: currentVersion(proposal).id, status: mask & (1 << (proposal.position - 1)) ? 'accepted' : 'rejected', reason: 'Preferencia del cliente' })
     }
     assert.equal(canSummarize(p), mask === 31)
     if (mask !== 31) assert.throws(() => buildSummary(p), /cinco/)
@@ -108,7 +108,7 @@ test('cambiar una decisión invalida el resumen anterior', () => {
   for (const proposal of p.proposals) p = updateProject(p, { type: 'decide', position: proposal.position, versionId: currentVersion(proposal).id, status: 'accepted', reason: '' })
   p = updateProject(p, { type: 'summarize' })
   assert.ok(p.summary)
-  p = updateProject(p, { type: 'decide', position: 1, versionId: currentVersion(p.proposals[0]).id, status: 'rejected', reason: '' })
+  p = updateProject(p, { type: 'decide', position: 1, versionId: currentVersion(p.proposals[0]).id, status: 'rejected', reason: 'No encaja con el diseño.' })
   assert.equal(p.summary, undefined)
 })
 
@@ -130,4 +130,15 @@ test('una preferencia nueva conserva el mensaje inicial y las propuestas ya acep
   assert.deepEqual(p.messages.map(m => m.text), ['Conservar la cama', 'Prefiero madera clara'])
   assert.equal(p.preferences, 'Prefiero madera clara')
   assert.deepEqual(p.proposals, before)
+})
+
+
+test('un rechazo sin motivo no cambia la decisión ni inicia regeneración', () => {
+  const p = project()
+  for (const reason of ['', '   ']) {
+    const next = updateProject(p, { type: 'decide', position: 1, versionId: currentVersion(p.proposals[0]).id, status: 'rejected', reason })
+    assert.deepEqual(next, p)
+    assert.equal(next.events.length, 0)
+    assert.equal(next.proposals[0].generation, 'idle')
+  }
 })

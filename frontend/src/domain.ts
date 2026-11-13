@@ -90,6 +90,7 @@ export function updateProject(project: Project, action: ProjectAction): Project 
   let events = project.events
   if (action.type === 'decide') {
     if (proposal.generation !== 'idle' || version.status === action.status) return project
+    if (action.status === 'rejected' && !action.reason.trim()) return project
     changed = { ...proposal, generation: action.status === 'rejected' ? 'generating' : 'idle', versions: proposal.versions.map(v => v.id === version.id ? { ...v, status: action.status } : v) }
     events = [...events, { id: crypto.randomUUID(), position: proposal.position, versionId: version.id, status: action.status, reason: action.reason.trim(), createdAt: now() }]
   } else {

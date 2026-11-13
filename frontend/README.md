@@ -15,7 +15,7 @@ npm run dev
 Abre la dirección que imprime Vite (normalmente `http://127.0.0.1:5173`).
 
 ```bash
-npm test       # 27 pruebas de dominio, componentes, archivos y persistencia
+npm test       # 29 pruebas de dominio, componentes, archivos y persistencia
 npm run build  # comprobación estricta de TypeScript y build de producción
 npm run preview
 ```
@@ -27,7 +27,7 @@ Después de instalar las dependencias, el recorrido funciona sin Internet. Los r
 1. Seleccionar un cliente de ejemplo, buscarlo o crear un proyecto con un nombre propio.
 2. Usar el dormitorio de ejemplo o subir una foto JPG/PNG/WebP, hasta 10 MiB y 25 megapíxeles. Se comprueban formato declarado, cabecera y decodificación; un archivo renombrado no basta. Confirmar que muestra un dormitorio y autorizar el guardado local.
 3. Comparar **Luxury, Japanese, Neo Classic, Attic y Cyberpunk**, ampliar imágenes y ver la fotografía original. Cada propuesta tiene posición, versión y estado visible. Las cinco empiezan pendientes.
-4. Añadir un motivo opcional antes de aceptar o rechazar. Un rechazo se conserva en el historial y, tras una breve espera simulada, crea únicamente una nueva versión del mismo estilo, pendiente. Las otras cuatro mantienen su estado. La nueva versión reutiliza la misma imagen ilustrativa.
+4. Aceptar con un motivo opcional o pulsar **Rechazar** para abrir una ventana que exige el motivo del rechazo. Cancelar conserva la propuesta. Solo al confirmar **Rechazar y regenerar** con un motivo no vacío se registra la decisión y se crea, tras una breve espera simulada, una nueva versión pendiente de ese estilo. Las otras cuatro mantienen su estado. La nueva versión reutiliza la misma imagen ilustrativa.
 5. Escribir preferencias en el chat. Se conservan como texto para las próximas versiones, sin alterar propuestas ya aceptadas. La respuesta del asistente es fija y está identificada como demostración.
 6. Pausar/reanudar la revisión. Abrir el historial con decisiones, motivos, IDs completos y versiones anteriores.
 7. Aceptar las cinco versiones actuales para habilitar el resumen final. Se calcula desde las decisiones, incluye rechazos históricos, no inventa motivos y se invalida al modificar una decisión o versión. Puede copiarse al portapapeles.
@@ -58,7 +58,7 @@ Las pruebas con API real, fallos de túnel, cuentas privadas y persistencia exte
 
 ## Verificación de esta entrega
 
-`npm test`: **27/27**. Incluye las 32 combinaciones de cinco decisiones, idempotencia, versiones obsoletas, regeneración y reintento, cambio de motivos, consentimiento por fotografía, recuperación con cambios concurrentes, almacenamiento inválido, reconstrucción del resumen y fechas ilegibles. Las pruebas de componentes utilizan Testing Library y Happy DOM; solo se sustituye la decodificación de imagen que ese DOM no implementa. IndexedDB se prueba con `fake-indexeddb`.
+`npm test`: **29/29**. Incluye las 32 combinaciones de cinco decisiones, idempotencia, versiones obsoletas, regeneración y reintento, rechazo con motivo obligatorio, cancelación, cambio de motivos, consentimiento por fotografía, recuperación con cambios concurrentes, almacenamiento inválido, reconstrucción del resumen y fechas ilegibles. Las pruebas de componentes utilizan Testing Library y Happy DOM; solo se sustituye la decodificación de imagen que ese DOM no implementa. IndexedDB se prueba con `fake-indexeddb`.
 
 `npm run build`: comprobación estricta de TypeScript y empaquetado de producción correctos. Recorrido manual en navegador: carga válida e inválida, cinco estilos, rechazo de Attic y nueva versión pendiente conservando aceptadas, recarga con foto e historial, resumen con cinco aceptaciones y su invalidación, envío de preferencias, pausa y navegación móvil a 390 × 844.
 

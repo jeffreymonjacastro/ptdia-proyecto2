@@ -22,27 +22,51 @@ const { useWorkspace } = await import('./useWorkspace.ts')
 afterEach(() => cleanup())
 const example = () => createProject({ client: 'Valeria', room: 'Dormitorio', preferences: '', photo: { kind: 'example', name: 'ejemplo.jpg' }, consent: true, bedroomConfirmed: true })
 
-test('la tarjeta no reutiliza el motivo de aceptación al rechazar la misma versión', () => {
+test('rechazar solicita un motivo antes de cambiar la versión y permite cancelar', () => {
   let p = example()
-  const actions: ProjectAction[] = []
-  const onAction = (action: ProjectAction) => { actions.push(action); p = updateProject(p, action) }
+  const original = structuredClone(p)
+  const view = render(createElement(ProposalCard, { proposal: p.proposals[0], paused: false, onAction: action => { p = updateProject(p, action) }, onPreview() {} }))
+  fireEvent.click(view.getByRole('button', { name: 'Rechazar Luxury' }))
+  assert.ok(view.getByRole('dialog'))
+  assert.deepEqual(p, original)
+  fireEvent.click(view.getByRole('button', { name: 'Cancelar' }))
+  assert.equal(view.queryByRole('dialog'), null)
+  assert.deepEqual(p, original)
+})
+
+test('el rechazo exige un motivo no vacío y conserva el texto al confirmar', () => {
+  let p = example()
+  const view = render(createElement(ProposalCard, { proposal: p.proposals[0], paused: false, onAction: action => { p = updateProject(p, action) }, onPreview() {} }))
+  fireEvent.click(view.getByRole('button', { name: 'Rechazar Luxury' }))
+  const field = view.getByRole('textbox', { name: 'Motivo del rechazo' })
+  const confirm = view.getByRole('button', { name: 'Rechazar y regenerar' }) as HTMLButtonElement
+  assert.equal(confirm.disabled, true)
+  fireEvent.change(field, { target: { value: '   ' } })
+  fireEvent.submit(confirm.closest('form')!)
+  assert.equal(p.events.length, 0)
+  fireEvent.change(field, { target: { value: '  Queremos conservar la ventana.  ' } })
+  assert.equal(confirm.disabled, false)
+  fireEvent.submit(confirm.closest('form')!)
+  assert.equal(p.events[0].reason, 'Queremos conservar la ventana.')
+  assert.equal(p.proposals[0].generation, 'generating')
+  assert.equal(view.queryByRole('dialog'), null)
+})
+
+test('el motivo de una aceptación no se reutiliza al pedir el motivo del rechazo', () => {
+  let p = example()
+  const onAction = (action: ProjectAction) => { p = updateProject(p, action) }
   const view = render(createElement(ProposalCard, { proposal: p.proposals[0], paused: false, onAction, onPreview() {} }))
   fireEvent.click(view.getByRole('button', { name: 'Añadir motivo opcional' }))
   fireEvent.change(view.getByRole('textbox', { name: 'Motivo para Luxury' }), { target: { value: 'Me encanta la luz' } })
   fireEvent.click(view.getByRole('button', { name: 'Aceptar Luxury' }))
-  assert.equal(p.events[0].reason, 'Me encanta la luz')
   view.rerender(createElement(ProposalCard, { proposal: p.proposals[0], paused: false, onAction, onPreview() {} }))
   fireEvent.click(view.getByRole('button', { name: 'Rechazar Luxury' }))
-  assert.equal(p.events[1].reason, '')
-})
-
-test('se permite escribir un motivo nuevo para rechazar una propuesta aceptada', () => {
-  let p = example()
-  p = updateProject(p, { type: 'decide', position: 1, versionId: currentVersion(p.proposals[0]).id, status: 'accepted', reason: '' })
-  const view = render(createElement(ProposalCard, { proposal: p.proposals[0], paused: false, onAction: action => { p = updateProject(p, action) }, onPreview() {} }))
-  fireEvent.click(view.getByRole('button', { name: 'Añadir motivo opcional' }))
-  fireEvent.change(view.getByRole('textbox', { name: 'Motivo para Luxury' }), { target: { value: 'Ahora prefiero más luz natural' } })
-  fireEvent.click(view.getByRole('button', { name: 'Rechazar Luxury' }))
+  const field = view.getByRole('textbox', { name: 'Motivo del rechazo' }) as HTMLTextAreaElement
+  assert.equal(field.value, '')
+  assert.equal(p.events.length, 1)
+  fireEvent.change(field, { target: { value: 'Ahora prefiero más luz natural' } })
+  fireEvent.submit(view.getByRole('button', { name: 'Rechazar y regenerar' }).closest('form')!)
+  assert.equal(p.events[0].reason, 'Me encanta la luz')
   assert.equal(p.events[1].reason, 'Ahora prefiero más luz natural')
 })
 
