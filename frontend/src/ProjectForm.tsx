@@ -6,6 +6,9 @@ import { readPhoto } from './photos.ts'
 export function ProjectForm({ onClose, onCreate }: { onClose: () => void; onCreate: (project: Project) => void }) {
   const [photo, setPhoto] = useState<Photo>({ kind: 'example', name: 'dormitorio-ejemplo.jpg' })
   const [error, setError] = useState('')
+  const [formError, setFormError] = useState('')
+  const [confirmed, setConfirmed] = useState(false)
+  const [consent, setConsent] = useState(false)
   const [reading, setReading] = useState(false)
   const [creating, setCreating] = useState(false)
   const fileInput = useRef<HTMLInputElement>(null)
@@ -19,7 +22,7 @@ export function ProjectForm({ onClose, onCreate }: { onClose: () => void; onCrea
     setReading(true); setError('')
     try {
       const next = await readPhoto(file)
-      if (request === sequence.current) setPhoto(next)
+      if (request === sequence.current) { setPhoto(next); setConfirmed(false); setConsent(false) }
     } catch (cause) {
       if (request === sequence.current) setError(cause instanceof Error ? cause.message : 'No se pudo abrir la fotografía.')
     } finally { if (request === sequence.current) setReading(false) }
@@ -27,6 +30,7 @@ export function ProjectForm({ onClose, onCreate }: { onClose: () => void; onCrea
   function useExample() {
     sequence.current++; setReading(false); setError('')
     setPhoto({ kind: 'example', name: 'dormitorio-ejemplo.jpg' })
+    setConfirmed(false); setConsent(false)
   }
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -37,11 +41,11 @@ export function ProjectForm({ onClose, onCreate }: { onClose: () => void; onCrea
         preferences: String(data.get('preferences') || ''), photo, consent: data.has('consent'), bedroomConfirmed: data.has('bedroom') })
       setCreating(true)
       creationTimer.current = window.setTimeout(() => { onCreate(project); onClose() }, 900)
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo crear el proyecto.') }
+    } catch (cause) { setFormError(cause instanceof Error ? cause.message : 'No se pudo crear el proyecto.') }
   }
   return <Dialog title="Un nuevo comienzo" eyebrow="NUEVO PROYECTO" onClose={onClose}>
     <p className="dialog-intro">Un dormitorio, cinco formas de imaginarlo. Empieza con una foto y revísala junto a tu cliente.</p>
-    <form onSubmit={submit} className="project-form">
+    <form onSubmit={submit} onChange={() => setFormError('')} className="project-form">
       <fieldset disabled={creating}>
         <div className="form-row"><label>Nombre del cliente<input name="client" autoComplete="off" placeholder="Ej. Valeria Mendoza" maxLength={80} required autoFocus /></label>
           <label>Nombre del espacio<input name="room" defaultValue="Dormitorio principal" maxLength={80} required /></label></div>
@@ -56,10 +60,10 @@ export function ProjectForm({ onClose, onCreate }: { onClose: () => void; onCrea
         <div className="upload-caption"><span>JPG, PNG o WebP · hasta 10 MB y 25 MP</span>{(photo.kind === 'upload' || error) && <button type="button" className="text-button" onClick={useExample}>Usar el ejemplo</button>}</div>
         <label>Preferencias <span className="optional">opcional</span><textarea name="preferences" placeholder="Colores, materiales, iluminación o elementos que quieren conservar…" rows={3} maxLength={2000} /></label>
         <div className="scope-note"><Icon name="bed" size={20} /><div><strong>Solo habitaciones / dormitorios</strong><p>La demo no identifica el contenido de tu foto. Confirma que es un dormitorio.</p></div></div>
-        <label className="checkbox-label"><input type="checkbox" name="bedroom" required /><span>Confirmo que la fotografía muestra un dormitorio.</span></label>
-        <label className="checkbox-label"><input type="checkbox" name="consent" required /><span>Tengo autorización para usar esta foto y guardarla con las decisiones en este navegador. Puedo eliminar el proyecto cuando quiera.</span></label>
+        <label className="checkbox-label"><input type="checkbox" name="bedroom" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} required /><span>Confirmo que la fotografía muestra un dormitorio.</span></label>
+        <label className="checkbox-label"><input type="checkbox" name="consent" checked={consent} onChange={event => setConsent(event.target.checked)} required /><span>Tengo autorización para usar esta foto y guardarla con las decisiones en este navegador. Puedo eliminar el proyecto cuando quiera.</span></label>
       </fieldset>
-      {error && <p className="error-message" role="alert">{error}</p>}
+      {(error || formError) && <p className="error-message" role="alert">{error || formError}</p>}
       <div className="form-footer"><span><Icon name="info" size={14} /> Propuestas de ejemplo, sin generación de IA.</span><button className="button primary" type="submit" disabled={creating || reading || !!error}>{creating ? <><span className="spinner" /> Preparando cinco propuestas…</> : <><Icon name="sparkle" size={16} />Crear proyecto</>}</button></div>
     </form>
   </Dialog>

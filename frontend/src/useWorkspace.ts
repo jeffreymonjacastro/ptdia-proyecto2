@@ -19,7 +19,7 @@ export function useWorkspace() {
       if (!active) return
       writable.current = false
       setStorageError(`${cause instanceof Error ? cause.message : 'El navegador no permite guardar el historial.'} Los cambios de esta vista se conservarán solo mientras permanezca abierta.`)
-      setWorkspace(freshWorkspace())
+      setWorkspace({ schema: 1, projects: [], activeId: null, designer: 'Mariana' })
     })
     return () => { active = false }
   }, [])
@@ -47,10 +47,13 @@ export function useWorkspace() {
     try {
       if (!writable.current) {
         const recovered = await loadWorkspace()
-        const currentIds = new Set(workspace.projects.map(p => p.id))
-        const merged = recovered ? { ...workspace, projects: [...workspace.projects, ...recovered.projects.filter(p => !currentIds.has(p.id))] } : { ...workspace }
         writable.current = true
-        setWorkspace(merged)
+        setWorkspace(current => {
+          if (!current) return current
+          const ids = new Set(current.projects.map(p => p.id))
+          const projects = [...current.projects, ...(recovered?.projects.filter(p => !ids.has(p.id)) ?? [])]
+          return { ...current, projects, activeId: current.activeId ?? recovered?.activeId ?? projects[0]?.id ?? null }
+        })
         return
       }
       await saveWorkspace(workspace)

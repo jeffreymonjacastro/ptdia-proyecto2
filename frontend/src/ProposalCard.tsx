@@ -9,7 +9,7 @@ export function ProposalCard({ proposal, paused, onAction, onPreview }: { propos
   const busy = proposal.generation === 'generating'
   const failed = proposal.generation === 'failed'
   const style = STYLES[proposal.style]
-  useEffect(() => { setReason(''); setShowReason(false) }, [version.id])
+  useEffect(() => { setReason(''); setShowReason(false) }, [version.id, version.status])
   useEffect(() => {
     if (!busy || paused) return
     // shortcut: la demo reutiliza la misma imagen; sustituir por la API de regeneración al integrar backend.
@@ -17,7 +17,10 @@ export function ProposalCard({ proposal, paused, onAction, onPreview }: { propos
     return () => window.clearTimeout(timeout)
   }, [busy, paused, proposal.position, version.id, onAction])
 
-  const decide = (status: 'accepted' | 'rejected') => onAction({ type: 'decide', position: proposal.position, versionId: version.id, status, reason })
+  const decide = (status: 'accepted' | 'rejected') => {
+    onAction({ type: 'decide', position: proposal.position, versionId: version.id, status, reason })
+    setReason(''); setShowReason(false)
+  }
   return <article className={`proposal-card ${version.status}`} style={styleAccent(proposal.style)} aria-label={`Propuesta ${style.name}`}>
     <button className="proposal-image-button" onClick={onPreview} aria-label={`Ampliar ${style.name}, versión ${version.number}`}>
       <RoomImage style={proposal.style} />
@@ -36,9 +39,9 @@ export function ProposalCard({ proposal, paused, onAction, onPreview }: { propos
           <button className={`decision-button accept ${version.status === 'accepted' ? 'selected' : ''}`} onClick={() => decide('accepted')} disabled={paused || version.status === 'accepted'} aria-label={`Aceptar ${style.name}`}><Icon name="check" size={16} />Aceptar</button>
           <button className="decision-button reject" onClick={() => decide('rejected')} disabled={paused} aria-label={`Rechazar ${style.name}`}><Icon name="close" size={15} />Rechazar</button>
         </div>
-        {version.status !== 'accepted' && <button className="reason-toggle" onClick={() => setShowReason(!showReason)} disabled={paused} aria-expanded={showReason}>
+        <button className="reason-toggle" onClick={() => setShowReason(!showReason)} disabled={paused} aria-expanded={showReason}>
           <Icon name="plus" size={12} />{showReason ? 'Ocultar motivo' : 'Añadir motivo opcional'}
-        </button>}
+        </button>
         {showReason && <textarea className="reason-input" aria-label={`Motivo para ${style.name}`} placeholder="¿Qué te gusta o qué cambiarías?" value={reason} onChange={event => setReason(event.target.value)} maxLength={500} rows={2} disabled={paused} />}
       </>}
     </div>

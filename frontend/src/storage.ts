@@ -1,4 +1,4 @@
-import { STYLE_IDS, type Project } from './domain.ts'
+import { STYLE_IDS, buildSummary, canSummarize, type Project } from './domain.ts'
 export type Workspace = { schema: 1; projects: Project[]; activeId: string | null; designer: string }
 
 function validate(value: unknown): asserts value is Workspace {
@@ -16,8 +16,7 @@ function validate(value: unknown): asserts value is Workspace {
             && typeof version.description === 'string' && ['pending', 'accepted', 'rejected'].includes(version.status)))
         && Array.isArray(p.events) && p.events.every(e => typeof e.reason === 'string' && typeof e.createdAt === 'string'
           && ['accepted', 'rejected'].includes(e.status) && p.proposals.some(v => v.position === e.position && v.versions.some(version => version.id === e.versionId)))
-        && Array.isArray(p.messages) && p.messages.every(m => typeof m.text === 'string' && typeof m.id === 'string')
-        && (!p.summary || (typeof p.summary.text === 'string' && p.summary.revision === p.revision)))
+        && Array.isArray(p.messages) && p.messages.every(m => typeof m.text === 'string' && typeof m.id === 'string'))
     if (valid) return
   } catch { /* Los registros incompatibles se conservan para no perder datos. */ }
   throw new Error('El historial local es incompatible o está dañado. No se ha sobrescrito.')
@@ -47,7 +46,15 @@ export async function loadWorkspace(): Promise<Workspace | undefined> {
       try {
         if (request.result === undefined) return resolve(undefined)
         validate(request.result)
-        resolve(request.result)
+        const data = request.result
+        resolve({ ...data, projects: data.projects.map(p => {
+          const restored: Project = { ...p, summary: undefined, status: p.status === 'completed' ? 'ready' : p.status }
+          const unpaused: Project = { ...restored, status: 'ready' }
+          if (p.summary?.revision === p.revision && canSummarize(unpaused)) {
+            return { ...p, summary: buildSummary(unpaused) }
+          }
+          return restored
+        }) })
       } catch (error) { reject(error) }
     }
     transaction.onabort = () => { db.close(); reject(transaction.error) }

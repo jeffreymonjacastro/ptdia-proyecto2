@@ -15,7 +15,7 @@ npm run dev
 Abre la dirección que imprime Vite (normalmente `http://127.0.0.1:5173`).
 
 ```bash
-npm test       # reglas del flujo, archivos y persistencia IndexedDB
+npm test       # 27 pruebas de dominio, componentes, archivos y persistencia
 npm run build  # comprobación estricta de TypeScript y build de producción
 npm run preview
 ```
@@ -40,6 +40,7 @@ Después de instalar las dependencias, el recorrido funciona sin Internet. Los r
 - El acceso es ilustrativo: **no hay autenticación ni aislamiento privado entre usuarios del mismo perfil del navegador**. No introduzcas contraseñas. Usa fotografías de prueba autorizadas.
 - La demo no clasifica habitaciones: solicita confirmación explícita. La detección real de dormitorios corresponde al backend.
 - Las cinco imágenes se muestran mediante ventanas SVG del raster de referencia en `public/demo/bedrooms.png`. Son ejemplos ilustrativos del mockup, sin inferencia SDXL ni adaptadores LoRA. La foto cargada no cambia esas imágenes. Las regeneraciones no evalúan calidad visual ni conservación espacial.
+- El temporizador de regeneración solo avanza mientras se visualiza ese proyecto. Cambiar de cliente o pausar suspende la simulación; volver o reanudar la inicia de nuevo. La demo no ejecuta inferencia en segundo plano.
 - El resumen es determinista y está rotulado como demostración. No llama a Qwen ni demuestra fidelidad de un LLM real.
 - Vite sirve archivos estáticos. No hay endpoints `/api`, proxy a túneles antiguos, claves, cuentas remotas, publicación ni backend implementado.
 
@@ -54,3 +55,11 @@ Después de instalar las dependencias, el recorrido funciona sin Internet. Los r
 Cuando Ian entregue el backend, sustituir la creación local por `POST /api/generations`, las decisiones por `PUT /api/generations/{id}/decisions/{version_id}`, los reintentos por `POST /api/generations/{id}/variations/{position}/retry`, y el resumen por `POST /api/generations/{id}/summary`. Usar las rutas de historial/borrado y la autenticación descritas en plan3. Habrá que acordar el esquema exacto de respuestas y mapear los IDs/versiones del servidor; los IDs de esta demo no constituyen un contrato cerrado de API.
 
 Las pruebas con API real, fallos de túnel, cuentas privadas y persistencia externa del plan permanecen pendientes. La PoC de `poc/khipu_front` y el notebook existente se conservan como referencias independientes.
+
+## Verificación de esta entrega
+
+`npm test`: **27/27**. Incluye las 32 combinaciones de cinco decisiones, idempotencia, versiones obsoletas, regeneración y reintento, cambio de motivos, consentimiento por fotografía, recuperación con cambios concurrentes, almacenamiento inválido, reconstrucción del resumen y fechas ilegibles. Las pruebas de componentes utilizan Testing Library y Happy DOM; solo se sustituye la decodificación de imagen que ese DOM no implementa. IndexedDB se prueba con `fake-indexeddb`.
+
+`npm run build`: comprobación estricta de TypeScript y empaquetado de producción correctos. Recorrido manual en navegador: carga válida e inválida, cinco estilos, rechazo de Attic y nueva versión pendiente conservando aceptadas, recarga con foto e historial, resumen con cinco aceptaciones y su invalidación, envío de preferencias, pausa y navegación móvil a 390 × 844.
+
+Una revisión independiente detectó problemas con motivos reutilizados, confirmaciones heredadas, resúmenes recuperados sin contrastar, fechas corruptas y recuperación de guardado con estado obsoleto. Todos se reprodujeron mediante pruebas que fallaron antes del cambio y pasaron después. Se corrigió además el bloqueo del formulario tras un nombre compuesto por espacios. Se difiere únicamente el avance de regeneraciones simuladas en proyectos que no están abiertos, según el límite descrito arriba.

@@ -38,3 +38,23 @@ test('datos incompatibles se notifican sin sobrescribir el historial existente',
   await assert.rejects(saveWorkspace({ ...original, schema: 2 } as unknown as Workspace), /incompatible/)
   assert.equal((await loadWorkspace())!.activeId, original.activeId)
 })
+
+test('un resumen guardado no declara aceptadas cinco propuestas que siguen pendientes', async () => {
+  const data = workspace()
+  data.projects[0].summary = { revision: 0, acceptedVersionIds: ['ajeno'], rejectedVersionIds: [], text: 'Cinco propuestas aceptadas' }
+  await saveWorkspace(data)
+  const loaded = (await loadWorkspace())!
+  assert.equal(loaded.projects[0].summary, undefined)
+})
+
+test('el resumen recuperado se reconstruye con los IDs y motivos de este proyecto', async () => {
+  const data = workspace()
+  let p = data.projects[0]
+  for (const proposal of p.proposals) p = updateProject(p, { type: 'decide', position: proposal.position, versionId: currentVersion(proposal).id, status: 'accepted', reason: '' })
+  p.summary = { revision: p.revision, acceptedVersionIds: ['otro-proyecto'], rejectedVersionIds: [], text: 'Texto ajeno' }
+  data.projects[0] = p
+  await saveWorkspace(data)
+  const loaded = (await loadWorkspace())!
+  assert.deepEqual(loaded.projects[0].summary!.acceptedVersionIds, p.proposals.map(v => currentVersion(v).id))
+  assert.equal(loaded.projects[0].summary!.text.includes('Texto ajeno'), false)
+})
