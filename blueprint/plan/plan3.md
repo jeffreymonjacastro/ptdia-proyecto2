@@ -261,6 +261,8 @@ Plazo disponible: **7 días**. Los entregables se trabajan en paralelo entre los
 
 **División:** **desarrollo del Frontend — Bianca**, con integración de backend coordinada con Ian.
 
+**Avance local, 13 de noviembre de 2026:** la rama `feat/frontend-dormitorios` incorpora [`frontend/`](../../frontend/README.md) con React, TypeScript, Vite y Tailwind: proyectos por cliente, carga y validación de foto, cinco tarjetas, decisiones versionadas, regeneración individual simulada, pausa, historial en IndexedDB y resumen determinista de demostración. Sigue el mockup y funciona sin backend. Las imágenes son ejemplos locales; una regeneración reutiliza el mismo ejemplo. El acceso no autentica usuarios y el almacenamiento no ofrece aislamiento entre personas del mismo perfil del navegador. Las casillas siguientes siguen describiendo la entrega integrada: la API real, la inferencia, las cuentas privadas y la persistencia externa continúan pendientes.
+
 **Archivos:** `frontend/src/` y pruebas del recorrido de usuario.
 
 **Referencia visual del frontend:** mockup generado con ImageGen para el diseñador de interiores y sus clientes. Presenta un chat con proyectos por cliente en el panel izquierdo, cinco propuestas de dormitorio con botones de aceptar/rechazar, feedback del cliente, respuestas del modelo de lenguaje y una barra inferior para ingresar el prompt. Los nombres y resultados son ilustrativos; la imagen guía el diseño y no acredita una interfaz implementada. [Prompt del mockup](../design/chat-dormitorios-v1-prompt.md).
