@@ -1,0 +1,211 @@
+{
+  "status": "complete",
+  "split": "validation",
+  "purpose": "Held-out Luxury input diagnostic; not ordinary-to-Luxury transformation evaluation",
+  "strength": 0.75,
+  "lora_scale": 0.8,
+  "seed": 42,
+  "steps": 25,
+  "guidance_scale": 7.5,
+  "results": [
+    {
+      "id": "C27283405",
+      "model": "base",
+      "file": "C27283405_base.png",
+      "seconds": 16.91044421899994,
+      "width": 936,
+      "height": 624,
+      "peak_gpu_gib": 8.407177925109863
+    },
+    {
+      "id": "C130307248",
+      "model": "base",
+      "file": "C130307248_base.png",
+      "seconds": 12.136729089000028,
+      "width": 944,
+      "height": 616,
+      "peak_gpu_gib": 8.396611213684082
+    },
+    {
+      "id": "C202523003",
+      "model": "base",
+      "file": "C202523003_base.png",
+      "seconds": 12.35012727600008,
+      "width": 928,
+      "height": 624,
+      "peak_gpu_gib": 8.38965129852295
+    },
+    {
+      "id": "C155392738",
+      "model": "base",
+      "file": "C155392738_base.png",
+      "seconds": 12.971895035999978,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.407357692718506
+    },
+    {
+      "id": "C155392752",
+      "model": "base",
+      "file": "C155392752_base.png",
+      "seconds": 13.406789080999943,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.407357692718506
+    },
+    {
+      "id": "C95813369",
+      "model": "base",
+      "file": "C95813369_base.png",
+      "seconds": 14.273891178999975,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.407357692718506
+    },
+    {
+      "id": "C173085455",
+      "model": "base",
+      "file": "C173085455_base.png",
+      "seconds": 15.219179623000059,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.407357692718506
+    },
+    {
+      "id": "C193539900",
+      "model": "base",
+      "file": "C193539900_base.png",
+      "seconds": 15.62570925,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.407357692718506
+    },
+    {
+      "id": "C97605435",
+      "model": "base",
+      "file": "C97605435_base.png",
+      "seconds": 14.93307710099998,
+      "width": 936,
+      "height": 624,
+      "peak_gpu_gib": 8.407113552093506
+    },
+    {
+      "id": "C114409177",
+      "model": "base",
+      "file": "C114409177_base.png",
+      "seconds": 14.397867539000003,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.406747341156006
+    },
+    {
+      "id": "C27283405",
+      "model": "own_lora",
+      "file": "C27283405_own_lora.png",
+      "seconds": 15.203377805999935,
+      "width": 936,
+      "height": 624,
+      "peak_gpu_gib": 8.4287428855896
+    },
+    {
+      "id": "C130307248",
+      "model": "own_lora",
+      "file": "C130307248_own_lora.png",
+      "seconds": 15.619732142999965,
+      "width": 944,
+      "height": 616,
+      "peak_gpu_gib": 8.418240547180176
+    },
+    {
+      "id": "C202523003",
+      "model": "own_lora",
+      "file": "C202523003_own_lora.png",
+      "seconds": 15.60976441799994,
+      "width": 928,
+      "height": 624,
+      "peak_gpu_gib": 8.411280632019043
+    },
+    {
+      "id": "C155392738",
+      "model": "own_lora",
+      "file": "C155392738_own_lora.png",
+      "seconds": 15.585894668000037,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.4289870262146
+    },
+    {
+      "id": "C155392752",
+      "model": "own_lora",
+      "file": "C155392752_own_lora.png",
+      "seconds": 15.393800690000035,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.4283766746521
+    },
+    {
+      "id": "C95813369",
+      "model": "own_lora",
+      "file": "C95813369_own_lora.png",
+      "seconds": 15.331188540000085,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.4289870262146
+    },
+    {
+      "id": "C173085455",
+      "model": "own_lora",
+      "file": "C173085455_own_lora.png",
+      "seconds": 15.36045006900008,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.4283766746521
+    },
+    {
+      "id": "C193539900",
+      "model": "own_lora",
+      "file": "C193539900_own_lora.png",
+      "seconds": 15.408960850999847,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.4289870262146
+    },
+    {
+      "id": "C97605435",
+      "model": "own_lora",
+      "file": "C97605435_own_lora.png",
+      "seconds": 15.728469121999979,
+      "width": 936,
+      "height": 624,
+      "peak_gpu_gib": 8.4287428855896
+    },
+    {
+      "id": "C114409177",
+      "model": "own_lora",
+      "file": "C114409177_own_lora.png",
+      "seconds": 15.578209312999888,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.4289870262146
+    }
+  ],
+  "base_model": "stabilityai/stable-diffusion-xl-base-1.0",
+  "base_revision": "462165984030d82259a11f4367a4eed129e94a7b",
+  "prompt": "luxbedstyle, photograph of a luxury bedroom, elegant coordinated furniture, refined headboard, layered lighting, premium-looking textiles, realistic interior photography, preserve the room layout, bed position and windows.",
+  "negative_prompt": "illustration, cartoon, distorted furniture, warped walls, blurry, duplicate beds",
+  "scheduler": "EulerDiscreteScheduler",
+  "input_ids": [
+    "C27283405",
+    "C130307248",
+    "C202523003",
+    "C155392738",
+    "C155392752",
+    "C95813369",
+    "C173085455",
+    "C193539900",
+    "C97605435",
+    "C114409177"
+  ],
+  "manifest_sha256": "162b00386a0ec7380de04a6631d3e7f46f2d7674c5bba77ab4f2465afe2059d8",
+  "weights_sha256": "aad41fa2c1ab8a7b044a9e3acebb8651f562baa658f72262a99d242e4b5cc05b"
+}

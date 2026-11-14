@@ -1,0 +1,26 @@
+{
+  "T01": {
+    "A": "base",
+    "B": "own_lora"
+  },
+  "T02": {
+    "A": "own_lora",
+    "B": "base"
+  },
+  "T03": {
+    "A": "own_lora",
+    "B": "base"
+  },
+  "T04": {
+    "A": "own_lora",
+    "B": "base"
+  },
+  "T05": {
+    "A": "base",
+    "B": "own_lora"
+  },
+  "T06": {
+    "A": "base",
+    "B": "own_lora"
+  }
+}

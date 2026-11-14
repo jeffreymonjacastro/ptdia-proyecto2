@@ -1,0 +1,297 @@
+{
+  "round": 1,
+  "date_local": "2026-11-12",
+  "timezone": "America/Lima",
+  "reviewer": "Fabryzzio",
+  "sheet": "comparacion_C61546110.jpg",
+  "input_id": "C61546110",
+  "seed": 42,
+  "preference_order": [
+    5,
+    6
+  ],
+  "below_expectations": [
+    1,
+    2,
+    3,
+    4
+  ],
+  "options": {
+    "5": {
+      "model": "SDXL base",
+      "strength": 0.75,
+      "lora_scale": null
+    },
+    "6": {
+      "model": "SDXL with own LoRA",
+      "strength": 0.75,
+      "lora_scale": 0.8
+    }
+  },
+  "geometry_approved": null,
+  "other_development_inputs_reviewed": false,
+  "scope": "Preference on one displayed sheet; no general superiority claim",
+  "next_candidate": {
+    "strength": 0.75,
+    "lora_scale": 0.8,
+    "seed": 42,
+    "steps": 25,
+    "guidance_scale": 7.5
+  },
+  "sheet_sha256": "1fa88a8885ab93f10e4feaab5285e86644500e8afac56fb3b19f5f2208aa0aae",
+  "user_quote": "Para mi la que más se acerca a lo que buscamos es la 5 y luego le sigue la 6. Las demas no llenan las espectativas.",
+  "validation_round": {
+    "round": 2,
+    "reviewer": "Fabryzzio",
+    "date_local": "2026-11-13",
+    "timezone": "America/Lima",
+    "sheet": "validation/revision_pagina1.jpg",
+    "sheet_sha256": "ec7a6620f14fa442cc50f32cc165b019e425e4b0489bc3f01b6632af72f3a892",
+    "user_quote": "Fila 1, 2,3,4: Base gana.\nFila 5: Empate.",
+    "dimension": "Luxury preference",
+    "quality_rated_separately": false,
+    "geometry_rated": false,
+    "votes": [
+      {
+        "row": "V01",
+        "input_id": "C27283405",
+        "winner": "base"
+      },
+      {
+        "row": "V02",
+        "input_id": "C130307248",
+        "winner": "base"
+      },
+      {
+        "row": "V03",
+        "input_id": "C202523003",
+        "winner": "base"
+      },
+      {
+        "row": "V04",
+        "input_id": "C155392738",
+        "winner": "base"
+      },
+      {
+        "row": "V05",
+        "input_id": "C155392752",
+        "winner": "tie"
+      },
+      {
+        "row": "V06",
+        "input_id": "C95813369",
+        "winner": "tie",
+        "qualitative_lean": "base",
+        "note": "Empate declarado; el usuario indica que Base es un poco mejor."
+      },
+      {
+        "row": "V07",
+        "input_id": "C173085455",
+        "winner": "tie",
+        "qualitative_lean": "base",
+        "note": "Empate declarado; el usuario indica que Base es un poco mejor."
+      },
+      {
+        "row": "V08",
+        "input_id": "C193539900",
+        "winner": "tie",
+        "qualitative_lean": "base",
+        "note": "Empate declarado; el usuario indica que Base es un poco mejor."
+      },
+      {
+        "row": "V09",
+        "input_id": "C97605435",
+        "winner": "tie",
+        "qualitative_lean": "base",
+        "note": "Empate declarado; el usuario indica que Base es un poco mejor."
+      },
+      {
+        "row": "V10",
+        "input_id": "C114409177",
+        "winner": "tie",
+        "qualitative_lean": "base",
+        "note": "Empate declarado; el usuario indica que Base es un poco mejor."
+      }
+    ],
+    "pending_rows": [],
+    "scope": "Ten validation images, one reviewer, fixed seed, model identities visible; Luxury preference only, not general superiority or geometry approval.",
+    "second_batch": {
+      "date_local": "2026-11-13",
+      "sheet": "validation/revision_pagina2.jpg",
+      "sheet_sha256": "9a85ec4df18087a2018363d1325e42e6a020758135b570256b2d874ce0bf0889",
+      "user_quote": "Las 5 filas empates entre base y LoRa, aunque base un poco mejor"
+    },
+    "first_batch_tally": {
+      "reviewed": 5,
+      "base": 4,
+      "own_lora": 0,
+      "tie": 1
+    },
+    "tally": {
+      "reviewed": 10,
+      "base": 4,
+      "own_lora": 0,
+      "tie": 6
+    },
+    "style_review_status": "complete"
+  },
+  "transfer_round": {
+    "round": 3,
+    "date_prepared_local": "2026-11-13",
+    "reviewer": "Fabryzzio",
+    "status": "complete",
+    "dimension": "Luxury preference",
+    "blinded_labels": [
+      "A",
+      "B"
+    ],
+    "protocol": "transfer/blind_review_protocol.json",
+    "votes": [
+      {
+        "row": "T01",
+        "seed": 42,
+        "winner_label": "A",
+        "input_id": "C48217889",
+        "winner_model": "base"
+      },
+      {
+        "row": "T02",
+        "seed": 42,
+        "winner_label": "B",
+        "input_id": "C167876602",
+        "winner_model": "base"
+      },
+      {
+        "row": "T03",
+        "seed": 42,
+        "winner_label": "A",
+        "rejected_label": "B",
+        "reported_issues": {
+          "spatial": true,
+          "generation_quality": true
+        },
+        "issue_scope": "User reports spatial problem and poor generation in B; exact defect not specified.",
+        "input_id": "C173354283",
+        "winner_model": "own_lora"
+      },
+      {
+        "row": "T04",
+        "seed": 42,
+        "winner_label": "tie",
+        "input_id": "C31883265",
+        "winner_model": "tie"
+      },
+      {
+        "row": "T05",
+        "seed": 42,
+        "winner_label": "A",
+        "input_id": "C12074681",
+        "winner_model": "base"
+      },
+      {
+        "row": "T06",
+        "seed": 42,
+        "winner_label": "A",
+        "input_id": "C10944031",
+        "winner_model": "base"
+      },
+      {
+        "row": "T01",
+        "seed": 123,
+        "winner_label": "B",
+        "input_id": "C48217889",
+        "winner_model": "own_lora"
+      },
+      {
+        "row": "T02",
+        "seed": 123,
+        "winner_label": "B",
+        "input_id": "C167876602",
+        "winner_model": "base"
+      },
+      {
+        "row": "T03",
+        "seed": 123,
+        "winner_label": "tie",
+        "input_id": "C173354283",
+        "winner_model": "tie"
+      },
+      {
+        "row": "T04",
+        "seed": 123,
+        "winner_label": "tie",
+        "reported_issues": {
+          "A": {
+            "generation_quality": true
+          },
+          "B": {
+            "generation_quality": true
+          }
+        },
+        "issue_scope": "User reports an incorrectly generated towel on the bed in both images.",
+        "input_id": "C31883265",
+        "winner_model": "tie"
+      },
+      {
+        "row": "T05",
+        "seed": 123,
+        "winner_label": "A",
+        "style_only_preference": true,
+        "overall_winner_label": null,
+        "spatial_preference_label": "B",
+        "tradeoff": "A: better Luxury, fails to preserve input and dimensional space. B: preserves space and layout, less Luxury. No overall acceptance declared.",
+        "input_id": "C12074681",
+        "winner_model": "base",
+        "overall_winner_model": null,
+        "spatial_preference_model": "own_lora"
+      },
+      {
+        "row": "T06",
+        "seed": 123,
+        "winner_label": "neither",
+        "issue_scope": "User considers both insufficient: only a folded green sheet added at the foot of the bed.",
+        "input_id": "C10944031",
+        "winner_model": "neither"
+      }
+    ],
+    "pending_pairs": [],
+    "note": "A/B assignments differ by room; do not equate A with one model across rows. Previous validation votes do not apply.",
+    "model_identities_disclosed": true,
+    "batch1": {
+      "date_local": "2026-11-13",
+      "sheet": "transfer/revision_AB_seed42_pagina1.jpg",
+      "sheet_sha256": "b07fa1979b80931e9221d9dcce8299a09f787f0ac40d000f9a0d1b46261e5a3e",
+      "user_quote": "1 fila: A\n2 fila: B\n3 fila: A (La B tiene un problema espacial+generacion mal realizada)"
+    },
+    "batch2": {
+      "date_local": "2026-11-13",
+      "sheet": "transfer/revision_AB_seed42_pagina2.jpg",
+      "sheet_sha256": "155f5f0b19fbb062609ca393e9d02a0f5afe49e1b62fcb6c25fafc36013a43dd",
+      "user_quote": "1 fila: Empate\n2 fila: A\n3 fila: A",
+      "note": "No additional spatial or generation defect reported; not an approval of geometry."
+    },
+    "batch3": {
+      "date_local": "2026-11-13",
+      "sheet": "transfer/revision_AB_seed123_pagina1.jpg",
+      "sheet_sha256": "f816e3a4c3ce7bb54f6167f1440c6623e01ff469583587d2f959911b4c80c5df",
+      "user_quote": "1 fila: B\n2 fila B\n3 fila empate",
+      "note": "No additional spatial or generation defect reported; not an approval of geometry."
+    },
+    "unblinded_date_local": "2026-11-13",
+    "style_tally": {
+      "base": 6,
+      "own_lora": 2,
+      "tie": 3,
+      "neither": 1
+    },
+    "tally_note": "Base includes T05 seed123, a style-only preference with no overall winner and spatial preference for own_lora.",
+    "assignment_verified": true,
+    "assignment_file": "transfer/blind_assignment_revealed.json",
+    "batch4": {
+      "date_local": "2026-11-13",
+      "sheet": "transfer/revision_AB_seed123_pagina2.jpg",
+      "sheet_sha256": "f36461ea688dd2ff47f0d6b56441d2cf942a0891e86584e304a320cd7d1de512",
+      "user_quote": "1 fila: empate ( Ambas tienen un error al generar una toalla en la cama)\n2 caso especifico: A genero un mejor estilo luxury pero no mantuvo el input y su espacio dimensional, la B mantuvo el espacio y distribucion de la habitacion pero genero menos estilo luxury.\n3 Ninguno, solo le agregaron una sabana verde doblada al final de la cama."
+    }
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "status": "verified",
+  "file_bytes": 46615272,
+  "sha256": "aad41fa2c1ab8a7b044a9e3acebb8651f562baa658f72262a99d242e4b5cc05b",
+  "tensor_count": 1120,
+  "tensor_parameters": 11612160,
+  "only_adapter_keys": true,
+  "lora_up_tensor_count": 560,
+  "nonzero_lora_up_values": 5324800,
+  "optimizer_updates": 300,
+  "training_images": 113,
+  "first_keys": [
+    "unet.down_blocks.1.attentions.0.transformer_blocks.0.attn1.to_k.lora.down.weight",
+    "unet.down_blocks.1.attentions.0.transformer_blocks.0.attn1.to_k.lora.up.weight",
+    "unet.down_blocks.1.attentions.0.transformer_blocks.0.attn1.to_out.0.lora.down.weight",
+    "unet.down_blocks.1.attentions.0.transformer_blocks.0.attn1.to_out.0.lora.up.weight"
+  ]
+}

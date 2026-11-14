@@ -1,0 +1,19 @@
+{
+  "id": "fabryzziomezatorres/bedroom-sdxl-trained-lora-experiments-v1",
+  "title": "Bedroom SDXL trained LoRA experiments v1",
+  "code_file": "02_sdxl_lora_experiments.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [
+    "fabryzziomezatorres/luxury-bedrooms-sdxl-training-v1"
+  ],
+  "kernel_sources": [
+    "fabryzziomezatorres/bedroom-sdxl-luxury-lora-train-v1",
+    "fabryzziomezatorres/bedroom-sdxl-baseline-v1"
+  ],
+  "competition_sources": [],
+  "model_sources": []
+}

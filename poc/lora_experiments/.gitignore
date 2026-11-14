@@ -1,0 +1,6 @@
+**/outputs/
+*.safetensors
+*.zip
+*.png
+*.jpg
+__pycache__/

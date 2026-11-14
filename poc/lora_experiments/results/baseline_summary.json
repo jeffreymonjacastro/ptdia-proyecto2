@@ -1,0 +1,26 @@
+[
+  {
+    "strength": 0.35,
+    "n_generations": 6,
+    "ssim_mean": 0.8613838454087576,
+    "ssim_std": 0.037317129547091134,
+    "rgb_mae_mean": 0.024150437985857327,
+    "seconds_mean": 8.482121205500002
+  },
+  {
+    "strength": 0.55,
+    "n_generations": 6,
+    "ssim_mean": 0.7216117481390635,
+    "ssim_std": 0.054767434131015265,
+    "rgb_mae_mean": 0.04473187712331613,
+    "seconds_mean": 10.265533465499999
+  },
+  {
+    "strength": 0.75,
+    "n_generations": 6,
+    "ssim_mean": 0.4435097277164459,
+    "ssim_std": 0.07629834442014545,
+    "rgb_mae_mean": 0.09586748977502187,
+    "seconds_mean": 12.859442940000008
+  }
+]

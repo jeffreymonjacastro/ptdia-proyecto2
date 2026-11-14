@@ -1,0 +1,289 @@
+{
+  "status": "complete",
+  "split": "transfer_evaluation",
+  "purpose": "Fixed-parameter ordinary-looking bedroom to Luxury evaluation; six rooms, two seeds",
+  "strength": 0.75,
+  "lora_scale": 0.8,
+  "seed": 42,
+  "steps": 25,
+  "guidance_scale": 7.5,
+  "results": [
+    {
+      "id": "C48217889",
+      "model": "base",
+      "seed": 42,
+      "file": "C48217889_base_seed42.png",
+      "seconds": 15.897298213999989,
+      "width": 864,
+      "height": 680,
+      "peak_gpu_gib": 8.41458797454834
+    },
+    {
+      "id": "C48217889",
+      "model": "base",
+      "seed": 123,
+      "file": "C48217889_base_seed123.png",
+      "seconds": 12.21827890100002,
+      "width": 864,
+      "height": 680,
+      "peak_gpu_gib": 8.414562225341797
+    },
+    {
+      "id": "C167876602",
+      "model": "base",
+      "seed": 42,
+      "file": "C167876602_base_seed42.png",
+      "seconds": 12.421032362000005,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.404672145843506
+    },
+    {
+      "id": "C167876602",
+      "model": "base",
+      "seed": 123,
+      "file": "C167876602_base_seed123.png",
+      "seconds": 12.760728239999992,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.404672145843506
+    },
+    {
+      "id": "C173354283",
+      "model": "base",
+      "seed": 42,
+      "file": "C173354283_base_seed42.png",
+      "seconds": 10.642145666999966,
+      "width": 1024,
+      "height": 472,
+      "peak_gpu_gib": 8.11562442779541
+    },
+    {
+      "id": "C173354283",
+      "model": "base",
+      "seed": 123,
+      "file": "C173354283_base_seed123.png",
+      "seconds": 10.848587633999955,
+      "width": 1024,
+      "height": 472,
+      "peak_gpu_gib": 8.11501407623291
+    },
+    {
+      "id": "C31883265",
+      "model": "base",
+      "seed": 42,
+      "file": "C31883265_base_seed42.png",
+      "seconds": 13.887618633000045,
+      "width": 936,
+      "height": 624,
+      "peak_gpu_gib": 8.403939723968506
+    },
+    {
+      "id": "C31883265",
+      "model": "base",
+      "seed": 123,
+      "file": "C31883265_base_seed123.png",
+      "seconds": 14.306071568999982,
+      "width": 936,
+      "height": 624,
+      "peak_gpu_gib": 8.403939723968506
+    },
+    {
+      "id": "C12074681",
+      "model": "base",
+      "seed": 42,
+      "file": "C12074681_base_seed42.png",
+      "seconds": 14.158458400000029,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.404672145843506
+    },
+    {
+      "id": "C12074681",
+      "model": "base",
+      "seed": 123,
+      "file": "C12074681_base_seed123.png",
+      "seconds": 13.794513859000062,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.404672145843506
+    },
+    {
+      "id": "C10944031",
+      "model": "base",
+      "seed": 42,
+      "file": "C10944031_base_seed42.png",
+      "seconds": 13.565194115000054,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.404672145843506
+    },
+    {
+      "id": "C10944031",
+      "model": "base",
+      "seed": 123,
+      "file": "C10944031_base_seed123.png",
+      "seconds": 13.609737677999988,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.404672145843506
+    },
+    {
+      "id": "C48217889",
+      "model": "own_lora",
+      "seed": 42,
+      "file": "C48217889_own_lora_seed42.png",
+      "seconds": 14.568402300999992,
+      "width": 864,
+      "height": 680,
+      "peak_gpu_gib": 8.43619155883789
+    },
+    {
+      "id": "C48217889",
+      "model": "own_lora",
+      "seed": 123,
+      "file": "C48217889_own_lora_seed123.png",
+      "seconds": 14.670857636999926,
+      "width": 864,
+      "height": 680,
+      "peak_gpu_gib": 8.437084674835205
+    },
+    {
+      "id": "C167876602",
+      "model": "own_lora",
+      "seed": 42,
+      "file": "C167876602_own_lora_seed42.png",
+      "seconds": 14.59831718299995,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.4263014793396
+    },
+    {
+      "id": "C167876602",
+      "model": "own_lora",
+      "seed": 123,
+      "file": "C167876602_own_lora_seed123.png",
+      "seconds": 14.438881013000014,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.4263014793396
+    },
+    {
+      "id": "C173354283",
+      "model": "own_lora",
+      "seed": 42,
+      "file": "C173354283_own_lora_seed42.png",
+      "seconds": 11.726474556000085,
+      "width": 1024,
+      "height": 472,
+      "peak_gpu_gib": 8.137253761291504
+    },
+    {
+      "id": "C173354283",
+      "model": "own_lora",
+      "seed": 123,
+      "file": "C173354283_own_lora_seed123.png",
+      "seconds": 11.664531218999969,
+      "width": 1024,
+      "height": 472,
+      "peak_gpu_gib": 8.137253761291504
+    },
+    {
+      "id": "C31883265",
+      "model": "own_lora",
+      "seed": 42,
+      "file": "C31883265_own_lora_seed42.png",
+      "seconds": 14.523947853999971,
+      "width": 936,
+      "height": 624,
+      "peak_gpu_gib": 8.4255690574646
+    },
+    {
+      "id": "C31883265",
+      "model": "own_lora",
+      "seed": 123,
+      "file": "C31883265_own_lora_seed123.png",
+      "seconds": 14.558567149000055,
+      "width": 936,
+      "height": 624,
+      "peak_gpu_gib": 8.4255690574646
+    },
+    {
+      "id": "C12074681",
+      "model": "own_lora",
+      "seed": 42,
+      "file": "C12074681_own_lora_seed42.png",
+      "seconds": 14.372123602999977,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.4263014793396
+    },
+    {
+      "id": "C12074681",
+      "model": "own_lora",
+      "seed": 123,
+      "file": "C12074681_own_lora_seed123.png",
+      "seconds": 14.376798160000021,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.4263014793396
+    },
+    {
+      "id": "C10944031",
+      "model": "own_lora",
+      "seed": 42,
+      "file": "C10944031_own_lora_seed42.png",
+      "seconds": 14.380833295000002,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.4263014793396
+    },
+    {
+      "id": "C10944031",
+      "model": "own_lora",
+      "seed": 123,
+      "file": "C10944031_own_lora_seed123.png",
+      "seconds": 14.397085555999979,
+      "width": 880,
+      "height": 664,
+      "peak_gpu_gib": 8.4263014793396
+    }
+  ],
+  "base_model": "stabilityai/stable-diffusion-xl-base-1.0",
+  "base_revision": "462165984030d82259a11f4367a4eed129e94a7b",
+  "prompt": "luxbedstyle, photograph of a luxury bedroom, elegant coordinated furniture, refined headboard, layered lighting, premium-looking textiles, realistic interior photography, preserve the room layout, bed position and windows.",
+  "negative_prompt": "illustration, cartoon, distorted furniture, warped walls, blurry, duplicate beds",
+  "scheduler": "EulerDiscreteScheduler",
+  "input_ids": [
+    "C48217889",
+    "C167876602",
+    "C173354283",
+    "C31883265",
+    "C12074681",
+    "C10944031"
+  ],
+  "manifest_sha256": "aa550bb0e9a63b9cbb47cbb0d9160ec04a3a21a2d3e383feb8c0e03a17c722ef",
+  "protocol": {
+    "frozen_date_local": "2026-11-13",
+    "n_inputs": 6,
+    "seeds": [
+      42,
+      123
+    ],
+    "models": [
+      "base",
+      "own_lora"
+    ],
+    "expected_generations": 24,
+    "strength": 0.75,
+    "lora_scale": 0.8,
+    "steps": 25,
+    "guidance_scale": 7.5,
+    "manifest_sha256": "aa550bb0e9a63b9cbb47cbb0d9160ec04a3a21a2d3e383feb8c0e03a17c722ef",
+    "weights_sha256": "aad41fa2c1ab8a7b044a9e3acebb8651f562baa658f72262a99d242e4b5cc05b",
+    "selection": "Six photographed ordinary-looking hotel bedrooms selected visually by assistant from previously cached sources before inference; distinct authors and IDs from 133 style photos and 3 development inputs; no pHash distance <=8 against available prior files.",
+    "limitations": "Small purposive hotel sample, not random or blind; conservative author/hash checks do not prove physical room independence. Two seeds per room are not independent rooms.",
+    "evaluation": "Human Luxury preference; assistant visible bed-count/layout audit. No tuning on these outputs."
+  },
+  "weights_sha256": "aad41fa2c1ab8a7b044a9e3acebb8651f562baa658f72262a99d242e4b5cc05b"
+}

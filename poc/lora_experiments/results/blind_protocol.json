@@ -1,0 +1,21 @@
+{
+  "date_local": "2026-11-13",
+  "timing": "Assignment frozen after kernel launch, before viewing any generated transfer output",
+  "assignment_sha256": "37a83d4fdda9208b443b833d54c55ec9fc3bc412d9aaa151bb0f0a4319b4662a",
+  "columns": [
+    "original",
+    "A",
+    "B"
+  ],
+  "balanced_assignment": true,
+  "assignment_per_room_same_across_seeds": true,
+  "seeds": [
+    42,
+    123
+  ],
+  "rooms": 6,
+  "review_pairs": 12,
+  "selection": "All six rooms and both preselected seeds; no cherry-picking based on output quality",
+  "rating": "Luxury preference: A, B, tie or neither; geometry separately, not inferred from style votes",
+  "limitations": "Single reviewer; hiding model labels reduces one source of bias but does not make this a population-level blinded trial."
+}

@@ -1,0 +1,19 @@
+{
+  "id": "fabryzziomezatorres/bedroom-luxury-transfer-evaluation-v1",
+  "title": "Bedroom Luxury transfer evaluation v1",
+  "code_file": "evaluate_transfer.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [
+    "fabryzziomezatorres/bedroom-luxury-transfer-eval-v1"
+  ],
+  "kernel_sources": [
+    "fabryzziomezatorres/bedroom-sdxl-luxury-lora-train-v1",
+    "fabryzziomezatorres/bedroom-sdxl-baseline-v1"
+  ],
+  "competition_sources": [],
+  "model_sources": []
+}

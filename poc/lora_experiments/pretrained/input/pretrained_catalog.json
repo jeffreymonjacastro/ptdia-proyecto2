@@ -1,0 +1,115 @@
+[
+  {
+    "style": "Luxury",
+    "file_name": "Luxury.safetensors",
+    "version_id": 354150,
+    "model_id": 1784893,
+    "base_model": "SDXL 1.0",
+    "trigger": "Luxury Bedroom",
+    "sha256_expected": "69D9D48DE82BC3B7F811F3BB4900DC762F5F4D7E60E4CB1CA31AF01237130801",
+    "author": "jjhuang",
+    "model_url": "https://civitai.com/models/1784893?modelVersionId=354150",
+    "metadata_url": "https://civitai.com/api/v1/models/1784893",
+    "permissions": {
+      "allowNoCredit": true,
+      "allowCommercialUse": [
+        "RentCivit"
+      ],
+      "allowDerivatives": false,
+      "allowDifferentLicense": true
+    },
+    "use_in_this_task": "Private inference comparison only; no third-party adapter redistribution or fine-tuning."
+  },
+  {
+    "style": "Japanese",
+    "file_name": "Japanese.safetensors",
+    "version_id": 371394,
+    "model_id": 250951,
+    "base_model": "SDXL 1.0",
+    "trigger": "Japanese Interior",
+    "sha256_expected": "C93996489076AE3806BFB26BADF24B70FF7A333B39A3A112B9B0F55829059505",
+    "author": "jjhuang",
+    "model_url": "https://civitai.com/models/250951?modelVersionId=371394",
+    "metadata_url": "https://civitai.com/api/v1/models/250951",
+    "permissions": {
+      "allowNoCredit": true,
+      "allowCommercialUse": [
+        "RentCivit"
+      ],
+      "allowDerivatives": false,
+      "allowDifferentLicense": true
+    },
+    "use_in_this_task": "Private inference comparison only; no third-party adapter redistribution or fine-tuning."
+  },
+  {
+    "style": "NeoClassic",
+    "file_name": "NeoClassic.safetensors",
+    "version_id": 392637,
+    "model_id": 351042,
+    "base_model": "SDXL 1.0",
+    "trigger": "Neo Classic",
+    "sha256_expected": "9C5011FE208B773145E7D16246ED3ACF041C76A73EF0878278F6AA8432902DA3",
+    "author": "jjhuang",
+    "model_url": "https://civitai.com/models/351042?modelVersionId=392637",
+    "metadata_url": "https://civitai.com/api/v1/models/351042",
+    "permissions": {
+      "allowNoCredit": true,
+      "allowCommercialUse": [
+        "RentCivit"
+      ],
+      "allowDerivatives": false,
+      "allowDifferentLicense": false
+    },
+    "use_in_this_task": "Private inference comparison only; no third-party adapter redistribution or fine-tuning."
+  },
+  {
+    "style": "Attic",
+    "file_name": "Attic.safetensors",
+    "version_id": 2693144,
+    "model_id": 2395230,
+    "base_model": "SDXL 1.0",
+    "trigger": "Attic b3dr00m",
+    "sha256_expected": "2CA188E2C84EC75FA1CFEB7C7680D9544F9E305D71EFD328D8D9F33718016587",
+    "author": "arrssenne",
+    "model_url": "https://civitai.com/models/2395230?modelVersionId=2693144",
+    "metadata_url": "https://civitai.com/api/v1/models/2395230",
+    "permissions": {
+      "allowNoCredit": true,
+      "allowCommercialUse": [
+        "Image",
+        "RentCivit",
+        "Rent",
+        "Sell",
+        "SellMerge"
+      ],
+      "allowDerivatives": true,
+      "allowDifferentLicense": true
+    },
+    "use_in_this_task": "Private inference comparison only; no third-party adapter redistribution or fine-tuning."
+  },
+  {
+    "style": "Cyberpunk",
+    "file_name": "Cyberpunk.safetensors",
+    "version_id": 2487610,
+    "model_id": 2209481,
+    "base_model": "SDXL 1.0",
+    "trigger": "Cyberpunk bedroom 1nt3r10r",
+    "sha256_expected": "BDAF1C483D271F139B13C0257F7B2F885457910A7E1ABCA7AE2FCE49B43A6048",
+    "author": "arrssenne",
+    "model_url": "https://civitai.com/models/2209481?modelVersionId=2487610",
+    "metadata_url": "https://civitai.com/api/v1/models/2209481",
+    "permissions": {
+      "allowNoCredit": true,
+      "allowCommercialUse": [
+        "Image",
+        "RentCivit",
+        "Rent",
+        "Sell",
+        "SellMerge"
+      ],
+      "allowDerivatives": true,
+      "allowDifferentLicense": true
+    },
+    "use_in_this_task": "Private inference comparison only; no third-party adapter redistribution or fine-tuning."
+  }
+]

@@ -1,0 +1,22 @@
+{
+  "frozen_date_local": "2026-11-13",
+  "n_inputs": 6,
+  "seeds": [
+    42,
+    123
+  ],
+  "models": [
+    "base",
+    "own_lora"
+  ],
+  "expected_generations": 24,
+  "strength": 0.75,
+  "lora_scale": 0.8,
+  "steps": 25,
+  "guidance_scale": 7.5,
+  "manifest_sha256": "aa550bb0e9a63b9cbb47cbb0d9160ec04a3a21a2d3e383feb8c0e03a17c722ef",
+  "weights_sha256": "aad41fa2c1ab8a7b044a9e3acebb8651f562baa658f72262a99d242e4b5cc05b",
+  "selection": "Six photographed ordinary-looking hotel bedrooms selected visually by assistant from previously cached sources before inference; distinct authors and IDs from 133 style photos and 3 development inputs; no pHash distance <=8 against available prior files.",
+  "limitations": "Small purposive hotel sample, not random or blind; conservative author/hash checks do not prove physical room independence. Two seeds per room are not independent rooms.",
+  "evaluation": "Human Luxury preference; assistant visible bed-count/layout audit. No tuning on these outputs."
+}

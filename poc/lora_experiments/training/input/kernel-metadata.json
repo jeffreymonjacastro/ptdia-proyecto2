@@ -1,0 +1,16 @@
+{
+  "id": "fabryzziomezatorres/bedroom-sdxl-luxury-lora-train-v1",
+  "title": "Bedroom SDXL Luxury LoRA train v1",
+  "code_file": "train_cached_sdxl.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [
+    "fabryzziomezatorres/luxury-bedrooms-sdxl-training-v1"
+  ],
+  "kernel_sources": [],
+  "competition_sources": [],
+  "model_sources": []
+}

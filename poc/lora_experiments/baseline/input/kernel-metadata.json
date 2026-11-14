@@ -1,0 +1,16 @@
+{
+  "id": "fabryzziomezatorres/bedroom-sdxl-baseline-v1",
+  "title": "Bedroom SDXL baseline v1",
+  "code_file": "evaluate_base.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [
+    "fabryzziomezatorres/luxury-bedrooms-sdxl-training-v1"
+  ],
+  "kernel_sources": [],
+  "competition_sources": [],
+  "model_sources": []
+}

@@ -1,0 +1,16 @@
+[
+  {
+    "model": "base",
+    "n_rooms": 6,
+    "n_images": 12,
+    "ssim_mean": 0.39892229934533435,
+    "mae_mean": 0.10729716469844182
+  },
+  {
+    "model": "own_lora",
+    "n_rooms": 6,
+    "n_images": 12,
+    "ssim_mean": 0.4853426665067673,
+    "mae_mean": 0.09449740002552669
+  }
+]

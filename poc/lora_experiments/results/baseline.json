@@ -1,0 +1,193 @@
+{
+  "status": "complete",
+  "adapter": null,
+  "results": [
+    {
+      "id": "C133553208",
+      "strength": 0.35,
+      "seed": 42,
+      "width": 880,
+      "height": 664,
+      "seconds": 12.583697239999992,
+      "peak_gpu_gib": 8.407419204711914,
+      "file": "C133553208_base_s0.35_seed42.png"
+    },
+    {
+      "id": "C133553208",
+      "strength": 0.35,
+      "seed": 123,
+      "width": 880,
+      "height": 664,
+      "seconds": 7.088584311000034,
+      "peak_gpu_gib": 8.407357692718506,
+      "file": "C133553208_base_s0.35_seed123.png"
+    },
+    {
+      "id": "C133553208",
+      "strength": 0.55,
+      "seed": 42,
+      "width": 880,
+      "height": 664,
+      "seconds": 9.622652329000005,
+      "peak_gpu_gib": 8.407357692718506,
+      "file": "C133553208_base_s0.55_seed42.png"
+    },
+    {
+      "id": "C133553208",
+      "strength": 0.55,
+      "seed": 123,
+      "width": 880,
+      "height": 664,
+      "seconds": 9.704646830000002,
+      "peak_gpu_gib": 8.407357692718506,
+      "file": "C133553208_base_s0.55_seed123.png"
+    },
+    {
+      "id": "C133553208",
+      "strength": 0.75,
+      "seed": 42,
+      "width": 880,
+      "height": 664,
+      "seconds": 12.364140227000007,
+      "peak_gpu_gib": 8.407357692718506,
+      "file": "C133553208_base_s0.75_seed42.png"
+    },
+    {
+      "id": "C133553208",
+      "strength": 0.75,
+      "seed": 123,
+      "width": 880,
+      "height": 664,
+      "seconds": 12.689450120999993,
+      "peak_gpu_gib": 8.407357692718506,
+      "file": "C133553208_base_s0.75_seed123.png"
+    },
+    {
+      "id": "C195397852",
+      "strength": 0.35,
+      "seed": 42,
+      "width": 1024,
+      "height": 576,
+      "seconds": 7.680232204999982,
+      "peak_gpu_gib": 8.42042350769043,
+      "file": "C195397852_base_s0.35_seed42.png"
+    },
+    {
+      "id": "C195397852",
+      "strength": 0.35,
+      "seed": 123,
+      "width": 1024,
+      "height": 576,
+      "seconds": 7.816217967,
+      "peak_gpu_gib": 8.42042350769043,
+      "file": "C195397852_base_s0.35_seed123.png"
+    },
+    {
+      "id": "C195397852",
+      "strength": 0.55,
+      "seed": 42,
+      "width": 1024,
+      "height": 576,
+      "seconds": 10.570368758999962,
+      "peak_gpu_gib": 8.42042350769043,
+      "file": "C195397852_base_s0.55_seed42.png"
+    },
+    {
+      "id": "C195397852",
+      "strength": 0.55,
+      "seed": 123,
+      "width": 1024,
+      "height": 576,
+      "seconds": 10.585366129000022,
+      "peak_gpu_gib": 8.42042350769043,
+      "file": "C195397852_base_s0.55_seed123.png"
+    },
+    {
+      "id": "C195397852",
+      "strength": 0.75,
+      "seed": 42,
+      "width": 1024,
+      "height": 576,
+      "seconds": 12.867527508000023,
+      "peak_gpu_gib": 8.41981315612793,
+      "file": "C195397852_base_s0.75_seed42.png"
+    },
+    {
+      "id": "C195397852",
+      "strength": 0.75,
+      "seed": 123,
+      "width": 1024,
+      "height": 576,
+      "seconds": 12.654575337999972,
+      "peak_gpu_gib": 8.42042350769043,
+      "file": "C195397852_base_s0.75_seed123.png"
+    },
+    {
+      "id": "C61546110",
+      "strength": 0.35,
+      "seed": 42,
+      "width": 936,
+      "height": 624,
+      "seconds": 7.86005469700001,
+      "peak_gpu_gib": 8.406503200531006,
+      "file": "C61546110_base_s0.35_seed42.png"
+    },
+    {
+      "id": "C61546110",
+      "strength": 0.35,
+      "seed": 123,
+      "width": 936,
+      "height": 624,
+      "seconds": 7.863940812999999,
+      "peak_gpu_gib": 8.407113552093506,
+      "file": "C61546110_base_s0.35_seed123.png"
+    },
+    {
+      "id": "C61546110",
+      "strength": 0.55,
+      "seed": 42,
+      "width": 936,
+      "height": 624,
+      "seconds": 10.517797850000022,
+      "peak_gpu_gib": 8.407113552093506,
+      "file": "C61546110_base_s0.55_seed42.png"
+    },
+    {
+      "id": "C61546110",
+      "strength": 0.55,
+      "seed": 123,
+      "width": 936,
+      "height": 624,
+      "seconds": 10.592368895999982,
+      "peak_gpu_gib": 8.407113552093506,
+      "file": "C61546110_base_s0.55_seed123.png"
+    },
+    {
+      "id": "C61546110",
+      "strength": 0.75,
+      "seed": 42,
+      "width": 936,
+      "height": 624,
+      "seconds": 13.304060703000005,
+      "peak_gpu_gib": 8.407113552093506,
+      "file": "C61546110_base_s0.75_seed42.png"
+    },
+    {
+      "id": "C61546110",
+      "strength": 0.75,
+      "seed": 123,
+      "width": 936,
+      "height": 624,
+      "seconds": 13.276903743000048,
+      "peak_gpu_gib": 8.407113552093506,
+      "file": "C61546110_base_s0.75_seed123.png"
+    }
+  ],
+  "base_model": "stabilityai/stable-diffusion-xl-base-1.0",
+  "base_revision": "462165984030d82259a11f4367a4eed129e94a7b",
+  "prompt": "luxbedstyle, photograph of a luxury bedroom, elegant coordinated furniture, refined headboard, layered lighting, premium-looking textiles, realistic interior photography, preserve the room layout, bed position and windows.",
+  "negative_prompt": "illustration, cartoon, distorted furniture, warped walls, blurry, duplicate beds",
+  "steps": 25,
+  "guidance_scale": 7.5,
+  "scheduler": "EulerDiscreteScheduler"
+}

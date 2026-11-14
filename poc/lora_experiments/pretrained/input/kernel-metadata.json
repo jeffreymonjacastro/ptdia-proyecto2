@@ -1,0 +1,19 @@
+{
+  "id": "fabryzziomezatorres/bedroom-five-lora-parameters-v1",
+  "title": "Bedroom five LoRA parameters v1",
+  "code_file": "evaluate_pretrained.py",
+  "language": "python",
+  "kernel_type": "script",
+  "is_private": true,
+  "enable_gpu": true,
+  "enable_internet": true,
+  "dataset_sources": [
+    "fabryzziomezatorres/luxury-bedrooms-sdxl-training-v1",
+    "jeffreyamc/plania-p2-jjs-luxury-bedroom-xl"
+  ],
+  "kernel_sources": [
+    "fabryzziomezatorres/bedroom-sdxl-baseline-v1"
+  ],
+  "competition_sources": [],
+  "model_sources": []
+}

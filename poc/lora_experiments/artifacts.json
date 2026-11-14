@@ -1,0 +1,28 @@
+{
+  "weights": {
+    "filename": "Luxury_UTEC_r8_step300.safetensors",
+    "sha256": "aad41fa2c1ab8a7b044a9e3acebb8651f562baa658f72262a99d242e4b5cc05b",
+    "kaggle_kernel": "fabryzziomezatorres/bedroom-sdxl-luxury-lora-train-v1",
+    "kernel_version": 2,
+    "output_path": "luxury_lora/pytorch_lora_weights.safetensors"
+  },
+  "datasets": {
+    "style": "fabryzziomezatorres/luxury-bedrooms-sdxl-training-v1",
+    "transfer": "fabryzziomezatorres/bedroom-luxury-transfer-eval-v1"
+  },
+  "base_model": "stabilityai/stable-diffusion-xl-base-1.0",
+  "base_revision": "462165984030d82259a11f4367a4eed129e94a7b",
+  "tested_versions": {
+    "torch": "2.11.0",
+    "diffusers": "0.42.0",
+    "transformers": "5.20.2",
+    "peft": "0.21.2",
+    "accelerate": "1.15.0"
+  },
+  "style_split": {
+    "train": 113,
+    "validation": 10,
+    "test": 10
+  },
+  "test_split_evaluated": false
+}

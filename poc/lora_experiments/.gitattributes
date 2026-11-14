@@ -1,0 +1,6 @@
+# Preserve frozen dataset bytes and hashes, including whitespace in quoted fields.
+data/*.csv -text whitespace=-blank-at-eol
+*.py text eol=lf
+*.json text eol=lf
+*.jsonl text eol=lf
+*.ipynb text eol=lf
