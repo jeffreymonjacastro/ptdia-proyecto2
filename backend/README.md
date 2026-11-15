@@ -2,6 +2,8 @@
 
 FastAPI accepts a consented bedroom photo and queues five SDXL img2img proposals. Qwen compares each result with the original. The backend records versioned decisions, regenerates one rejected slot at a time, and renders a Spanish summary from the decision history. The text-chat and single-image prototypes remain in `poc/`.
 
+Frontend developers can start with the [browser integration guide and API contract](FRONTEND.md).
+
 ## Run the local tests
 
 Use Python 3.11 or newer and Docker. The suite uses real PostgreSQL, fake inference, a fake authenticator, and in-memory image storage. It resets the `bedroom` schema between tests and accepts only a loopback DSN for the `bedroom_test` database.
@@ -36,9 +38,9 @@ Wait for `pg_isready` to report that the database is accepting connections befor
 
 2. Create a **private** Storage bucket named `bedroom-private`. Allow JPEG, PNG, and WebP and set a file limit of at least 10 MiB. Record the database URL, the Supabase URL, the publishable key, and a dedicated server secret key for Kaggle. Grant browser access only through the FastAPI image endpoints.
 
-3. Disable public signup. In **Authentication → Users**, create a distinct account for each participant with a verified email and a unique password. Share credentials with each participant through the team's secure channel. The frontend uses the Supabase URL and publishable key for sign-in and sends the resulting access token as `Authorization: Bearer <access-token>` on API calls.
+3. Turn off **Allow new users to sign up**. Under **Authentication → Users → Create user**, create a distinct account for each participant with a unique password and **Auto Confirm User** enabled. The password-only demo can use placeholder addresses such as `bedroom-test-a@example.com` and `bedroom-test-b@example.com`. Share credentials with each participant through the team's secure channel. The frontend uses the Supabase URL and publishable key for sign-in and sends the resulting access token as `Authorization: Bearer <access-token>` on API calls.
 
-4. Enable `HF_TOKEN`, `NGROK_TOKEN`, `BEDROOM_DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SECRET_KEY` for the private Kaggle demo notebook. Add `BEDROOM_DATABASE_CA` if the DSN uses `verify-full`. The default permitted frontend origin is `http://localhost:5173`. Set `BEDROOM_ORIGINS` in the notebook environment for another exact origin.
+4. Enable `HF_TOKEN`, `NGROK_TOKEN`, `BEDROOM_DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SECRET_KEY` for the private Kaggle demo notebook. Add `BEDROOM_DATABASE_CA` if the DSN uses `verify-full`. The default permitted frontend origin is `http://localhost:5173`. Set `BEDROOM_ORIGINS` in the notebook environment for another exact origin. Use a comma-separated list for multiple origins and restart the API after changing it.
 
 References for setup are the [Supabase connection guide](https://supabase.com/docs/guides/database/connecting-to-postgres), [Auth user creation](https://supabase.com/docs/reference/python/auth-admin-createuser), and [Storage access models](https://supabase.com/docs/guides/storage/buckets/fundamentals).
 
@@ -62,12 +64,22 @@ For a finite model smoke run, use `build_bundle.py smoke` and provide `--smoke-p
 
 ## Exercise the frontend contract
 
-1. Sign in as participant A. With a fresh `Idempotency-Key`, send a multipart `POST /api/generations` containing `image`, optional `preferences`, and `consent=true`. Save the returned `session_id` and `job_id`. Poll `GET /api/jobs/{job_id}` and `GET /api/generations/{session_id}`. If the session needs confirmation, send `POST /api/generations/{id}/confirm-bedroom` with a new key. If the initial batch fails, use `POST /api/generations/{id}/retry`.
-2. On `ready`, fetch the five private `image_url` paths with the same bearer token and render the returned labels in order. To reject a version, send `PUT /api/generations/{id}/decisions/{version_id}` with `{"decision":"rejected","reason":"Conservar el techo"}` and a fresh key. Poll the regeneration job. Verify the other four current version IDs and assets are identical. Use `POST /api/generations/{id}/variations/{position}/retry` for a failed regeneration.
-3. Accept all five current versions with `{"decision":"accepted"}`. Request `POST /api/generations/{id}/summary` with a fresh key. Confirm the Spanish summary and its version IDs reflect the recorded decisions. Display a summary only when its `revision` matches the session. Version seeds are decimal strings so JavaScript preserves all digits. Restart Kaggle, open the new tunnel URL, and fetch the same session and summary with participant A's credentials. Participant B should get `404` for A's session, jobs, and image paths.
-4. Use `PATCH /api/generations/{id}` with `{"paused":true}` or `false` when no job is active. Use `DELETE /api/generations/{id}` to hide the session immediately and queue deletion of its database rows and images. For mutating requests with an idempotency header, reuse the same key only when retrying an identical request.
+Use the [frontend integration guide](FRONTEND.md) for the full endpoint and state contract. To verify the deployed backend independently of the browser UI, leave the Kaggle **Launch the API** cell running. From your local terminal, change to `backend/` and run the verifier with the current ngrok origin, Supabase URL, and publishable key.
 
-For a repeatable check, from `backend/` run `uv run python kaggle/verify_demo.py --api "$NGROK_URL" --supabase-url "$SUPABASE_URL" --publishable-key "$SUPABASE_PUBLISHABLE_KEY" --photo /path/to/authorized-bedroom.jpg --check-isolation`. It prompts for credentials locally and prints the completed session ID. Restart the notebook, update the ngrok URL, and run it again with `--session SESSION_ID` in place of `--photo`.
+```sh
+uv run python kaggle/verify_demo.py \
+  --api "$NGROK_URL" \
+  --supabase-url "$SUPABASE_URL" \
+  --publishable-key "$SUPABASE_PUBLISHABLE_KEY" \
+  --photo /path/to/authorized-bedroom.jpg \
+  --check-isolation
+```
+
+The verifier prompts for participant A's credentials, generates five proposals, regenerates one, checks the other four images, and verifies the Spanish summary. It polls quietly while the GPU jobs run. With `--check-isolation`, it then prompts for participant B's credentials and checks that B gets `404` for A's session, job, and both original and generated images. Save the session ID from `Verified completed session …`.
+
+Restart Kaggle, rerun all three cells, and update `NGROK_URL` to the URL printed by the launcher. Repeat the local command with `--session SESSION_ID` in place of `--photo …`. Use the same account A and keep `--check-isolation` to repeat the ownership checks. The saved Spanish text is accessible through `GET /api/generations/{session_id}` at `summary.summary`.
+
+The deployed verifier completed the authenticated flow, retrieved the completed session and summary after a Kaggle restart, and passed the two-account isolation check.
 
 Measure a representative session including at least one regeneration before opening shared testing. Use the actual image bytes and the planned number of testers to check the project's Storage and egress budget.
 
@@ -78,7 +90,6 @@ Stop the demo notebook and use the same database URL, Supabase URL, private buck
 ## Configure a future style
 
 Copy [the default style catalog](src/bedroom_backend/styles.json) to a separate JSON file and point `BEDROOM_CATALOG` to it. Add the custom profile with its SDXL-compatible weights, trigger phrase, version or SHA-256, and inference parameters. If you copy an existing profile, replace or remove its SHA-256. Put its ID in one of the five positions of `active`. Keep any old adapters available while existing sessions can still regenerate against their saved settings. The API continues to return five variations.
-
 
 ## GPU smoke evidence
 
