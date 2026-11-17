@@ -1,0 +1,11 @@
+{
+  "active": ["luxury", "japanese", "neo-classic", "attic", "cyberpunk"],
+  "defaults": {"scale": 0.8, "strength": 0.75, "steps": 35, "guidance": 7.5},
+  "profiles": [
+    {"id": "luxury", "label": "Luxury", "weights": "Luxury.safetensors", "revision": "civitai:354150", "sha256": "69d9d48de82bc3b7f811f3bb4900dc762f5f4d7e60e4cb1ca31af01237130801", "trigger": "Luxury Bedroom", "template": "upholstered headboard, walnut, brass accents and warm indirect light"},
+    {"id": "japanese", "label": "Japanese", "weights": "Japanese.safetensors", "revision": "civitai:371394", "sha256": "c93996489076ae3806bfb26badf24b70ff7a333b39a3a112b9b0f55829059505", "trigger": "Japanese Interior", "template": "natural wood, linen, subdued Japanese decor and soft daylight"},
+    {"id": "neo-classic", "label": "Neo Classic", "weights": "NeoClassic.safetensors", "revision": "civitai:392637", "sha256": "9c5011fe208b773145e7d16246ed3acf041c76a73ef0878278f6aa8432902da3", "trigger": "Neo Classic", "template": "cream palette, refined moldings and balanced lighting"},
+    {"id": "attic", "label": "Attic", "weights": "Attic.safetensors", "revision": "civitai:2693144", "sha256": "2ca188e2c84ec75fa1cfeb7c7680d9544f9e305d71efd328d8d9f33718016587", "trigger": "Attic b3dr00m", "template": "cozy attic-inspired decor and warm wood textures within the existing ceiling geometry"},
+    {"id": "cyberpunk", "label": "Cyberpunk", "weights": "Cyberpunk.safetensors", "revision": "civitai:2487610", "sha256": "bdaf1c483d271f139b13c0257f7b2f885457910a7e1abca7ae2fce49b43a6048", "trigger": "Cyberpunk bedroom 1nt3r10r", "template": "dark finishes and restrained cyan and magenta accent lighting"}
+  ]
+}

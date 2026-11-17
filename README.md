@@ -27,10 +27,15 @@ Las imágenes son ilustrativas y las regeneraciones reutilizan el ejemplo de cad
 
 Leer [CONTEXTO_PROYECTO.md](CONTEXTO_PROYECTO.md): reúne el flujo aprobado, las decisiones recientes, los puntos de conexión del frontend y el contrato real de `origin/bedroom-backend`, existente pero aún no incorporado en esta rama. Incluye las diferencias de autenticación, trabajos asíncronos, imágenes privadas y metadatos que deben resolverse al integrar.
 
+## Backend
+
+- [Contrato de integración del frontend](backend/FRONTEND.md): acceso Supabase, JSON, imágenes privadas y polling.
+- [Guía de operación del backend](backend/README.md): pruebas, configuración Supabase/Kaggle y verificación.
+
 ## Referencias y trabajo pendiente
 
 - [`blueprint/plan/plan3.md`](blueprint/plan/plan3.md): plan vigente de dormitorios, catálogo, API propuesta y reparto.
 - [`poc/kaggle_back/`](poc/kaggle_back/README.md): prueba de concepto de inferencia; no equivale al backend completo de sesiones e historial.
 - [`poc/khipu_front/`](poc/khipu_front/README.md): chat de prueba anterior, independiente del nuevo frontend.
 
-El backend de sesiones existe en la rama `bedroom-backend`; su integración con este frontend, las cuentas privadas y la persistencia remota siguen pendientes en esta rama. Las pruebas locales de la demo no acreditan generación real ni una integración con backend.
+El backend de sesiones se incorporó desde `bedroom-backend`. La adaptación del frontend al contrato remoto está en desarrollo; consultar las guías anteriores para configuración y operación. Las pruebas locales de la demo no acreditan generación real ni una integración con backend.

@@ -1,0 +1,105 @@
+# Bedroom backend
+
+FastAPI accepts a consented bedroom photo and queues five SDXL img2img proposals. Qwen compares each result with the original. The backend records versioned decisions, regenerates one rejected slot at a time, and renders a Spanish summary from the decision history. The text-chat and single-image prototypes remain in `poc/`.
+
+Frontend developers can start with the [browser integration guide and API contract](FRONTEND.md).
+
+## Run the local tests
+
+Use Python 3.11 or newer and Docker. The suite uses real PostgreSQL, fake inference, a fake authenticator, and in-memory image storage. It resets the `bedroom` schema between tests and accepts only a loopback DSN for the `bedroom_test` database.
+
+```sh
+docker run --rm --detach --name bedroom-test-postgres \
+  -e POSTGRES_PASSWORD=bedroom_test -e POSTGRES_DB=bedroom_test \
+  -p 127.0.0.1:55432:5432 postgres:17
+docker exec bedroom-test-postgres pg_isready -U postgres -d bedroom_test
+cd backend
+uv sync --extra test
+BEDROOM_TEST_DSN=postgresql://postgres:bedroom_test@127.0.0.1:55432/bedroom_test \
+  uv run --extra test pytest -q
+docker stop bedroom-test-postgres
+```
+
+Wait for `pg_isready` to report that the database is accepting connections before running pytest.
+
+## Set up shared persistence
+
+1. Create or select the **team-owned Supabase project** with the Data API and automatic table exposure disabled. Apply [the PostgreSQL migration](migrations/001_bedroom.sql) as the project database owner. Use a separate database login for the running backend. The statements below assume a fresh project and run in `psql` as the database owner. If the role is already provisioned, run only `\password bedroom_app`. Set the password through the prompt and store it in the team's password manager.
+
+   ```sql
+   CREATE ROLE bedroom_app LOGIN;
+   GRANT USAGE ON SCHEMA bedroom TO bedroom_app;
+   GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA bedroom TO bedroom_app;
+   GRANT USAGE ON ALL SEQUENCES IN SCHEMA bedroom TO bedroom_app;
+   \password bedroom_app
+   ```
+
+   Copy the **Session pooler** connection settings from **Connect**. Set the user to `bedroom_app.<project-ref>`, and use `sslmode=verify-full` with the Supabase CA certificate. Provide the CA as a Kaggle secret and write it to a temporary file at notebook startup, or set `sslmode=require` for a temporary smoke environment. Keep the `bedroom` schema outside the Data API and leave the `anon` and `authenticated` roles without grants on it.
+
+2. Create a **private** Storage bucket named `bedroom-private`. Allow JPEG, PNG, and WebP and set a file limit of at least 10 MiB. Record the database URL, the Supabase URL, the publishable key, and a dedicated server secret key for Kaggle. Grant browser access only through the FastAPI image endpoints.
+
+3. Turn off **Allow new users to sign up**. Under **Authentication → Users → Create user**, create a distinct account for each participant with a unique password and **Auto Confirm User** enabled. The password-only demo can use placeholder addresses such as `bedroom-test-a@example.com` and `bedroom-test-b@example.com`. Share credentials with each participant through the team's secure channel. The frontend uses the Supabase URL and publishable key for sign-in and sends the resulting access token as `Authorization: Bearer <access-token>` on API calls.
+
+4. Enable `HF_TOKEN`, `NGROK_TOKEN`, `BEDROOM_DATABASE_URL`, `SUPABASE_URL`, `SUPABASE_PUBLISHABLE_KEY`, and `SUPABASE_SECRET_KEY` for the private Kaggle demo notebook. Add `BEDROOM_DATABASE_CA` if the DSN uses `verify-full`. The default permitted frontend origin is `http://localhost:5173`. Set `BEDROOM_ORIGINS` in the notebook environment for another exact origin. Use a comma-separated list for multiple origins and restart the API after changing it.
+
+References for setup are the [Supabase connection guide](https://supabase.com/docs/guides/database/connecting-to-postgres), [Auth user creation](https://supabase.com/docs/reference/python/auth-admin-createuser), and [Storage access models](https://supabase.com/docs/guides/storage/buckets/fundamentals).
+
+## Package and run on Kaggle
+
+Build from the repository root. Use an untracked scratch output folder and replace the owner with the Kaggle account running the notebook. Use Kaggle CLI 2.2.5 or newer for `--no-run`.
+
+```sh
+uv build --wheel backend --out-dir /tmp/bedroom-wheel
+QWEN_REVISION=851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
+python backend/kaggle/build_bundle.py demo \
+  --wheel /tmp/bedroom-wheel/bedroom_backend-0.1.0-py3-none-any.whl \
+  --slug YOUR_KAGGLE_OWNER/ptdia-bedroom-backend-demo \
+  --revision "$QWEN_REVISION" --output /tmp/bedroom-demo
+kaggle kernels push -p /tmp/bedroom-demo --no-run
+```
+
+Open the resulting private notebook in Kaggle and select **T4 ×2** with Internet enabled. Confirm access to the LoRA dataset from the notebook. Run the setup, Supabase connection check, and launcher cells in order. Use the current ngrok URL printed by the launcher. Confirm `GET /health` returns `200` with `{"status":"ready"}`. The API exposes `/docs` and `/openapi.json`. Use `ngrok-skip-browser-warning: true` on API requests if needed.
+
+For a finite model smoke run, use `build_bundle.py smoke` and provide `--smoke-photo PATH` with a local JPEG. The verification fixture is [Hotel-suite-bedroom.jpg by Derek Jensen](https://commons.wikimedia.org/wiki/File:Hotel-suite-bedroom.jpg), released into the public domain. Use a separate private smoke slug, submit with `kaggle kernels push -p /tmp/bedroom-smoke --accelerator NvidiaTeslaT4 --timeout 3600`, and download the outputs with `kaggle kernels output OWNER/SLUG -p /tmp/bedroom-results`. Check `bedroom-smoke/smoke.json` for the application status as well as Kaggle's job status. The report includes model revisions, LoRA hashes, per-stage elapsed time, peak allocated GPU memory, and image sizes.
+
+## Exercise the frontend contract
+
+Use the [frontend integration guide](FRONTEND.md) for the full endpoint and state contract. To verify the deployed backend independently of the browser UI, leave the Kaggle **Launch the API** cell running. From your local terminal, change to `backend/` and run the verifier with the current ngrok origin, Supabase URL, and publishable key.
+
+```sh
+uv run python kaggle/verify_demo.py \
+  --api "$NGROK_URL" \
+  --supabase-url "$SUPABASE_URL" \
+  --publishable-key "$SUPABASE_PUBLISHABLE_KEY" \
+  --photo /path/to/authorized-bedroom.jpg \
+  --check-isolation
+```
+
+The verifier prompts for participant A's credentials, generates five proposals, regenerates one, checks the other four images, and verifies the Spanish summary. It polls quietly while the GPU jobs run. With `--check-isolation`, it then prompts for participant B's credentials and checks that B gets `404` for A's session, job, and both original and generated images. Save the session ID from `Verified completed session …`.
+
+Restart Kaggle, rerun all three cells, and update `NGROK_URL` to the URL printed by the launcher. Repeat the local command with `--session SESSION_ID` in place of `--photo …`. Use the same account A and keep `--check-isolation` to repeat the ownership checks. The saved Spanish text is accessible through `GET /api/generations/{session_id}` at `summary.summary`.
+
+The deployed verifier completed the authenticated flow, retrieved the completed session and summary after a Kaggle restart, and passed the two-account isolation check.
+
+Measure a representative session including at least one regeneration before opening shared testing. Use the actual image bytes and the planned number of testers to check the project's Storage and egress budget.
+
+## Post-grading purge
+
+Stop the demo notebook and use the same database URL, Supabase URL, private bucket, and server secret key in a secure local environment. From `backend/`, run `uv run bedroom-purge` for a dry run, then `uv run bedroom-purge --apply` to remove all sprint sessions and their objects. Check that the command reports zero remaining sessions and that the private bucket is empty. If Storage was temporarily unavailable, retry after two minutes to allow deferred Storage rechecks to run. Remove the temporary demo Auth accounts from the Supabase dashboard after the purge.
+
+## Configure a future style
+
+Copy [the default style catalog](src/bedroom_backend/styles.json) to a separate JSON file and point `BEDROOM_CATALOG` to it. Add the custom profile with its SDXL-compatible weights, trigger phrase, version or SHA-256, and inference parameters. If you copy an existing profile, replace or remove its SHA-256. Put its ID in one of the five positions of `active`. Keep any old adapters available while existing sessions can still regenerate against their saved settings. The API continues to return five variations.
+
+## GPU smoke evidence
+
+The [private Kaggle smoke run, version 4](https://www.kaggle.com/code/badexample/plania-bedroom-backend-smoke) completed on two Tesla T4s. It classified the fixture as a bedroom, produced all five styles with one active adapter per pass, regenerated Attic, and produced a grounded summary with five acceptances and the recorded Attic rejection. The model pins and adapter hashes are recorded in the code and catalog. The run used the model implementation delivered in branch commit `b7e710d`.
+
+| Stage | Measured latency | Peak allocated GPU memory |
+|---|---:|---:|
+| SDXL per proposal, including adapter switch | 29.6–35.1 s | 9.41 GiB |
+| Qwen comparison per proposal | 20.1–22.4 s | 8.78 GiB |
+| Qwen decision summary | 48.7 s | 9.49 GiB |
+| Cold smoke run, including model initialization and regeneration | 533.0 s | |
+
+The five proposals and one regeneration totaled 5,180,265 bytes. With the resized JPEG fixture, this run represents about 5.23 MB of private image data before any additional versions. It used Kaggle's PyTorch 2.11.0+cu130 with Transformers 5.20.2, Diffusers 0.42.1, PEFT 0.21.2, and Accelerate 1.15.0. Model smoke output is separate from the end-to-end Supabase and ngrok demo checks above.
