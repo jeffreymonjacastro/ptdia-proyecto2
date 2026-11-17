@@ -42,7 +42,7 @@ Después de instalar las dependencias, el recorrido funciona sin Internet. Los r
 - Las cinco imágenes se muestran mediante ventanas SVG del raster de referencia en `public/demo/bedrooms.png`. Son ejemplos ilustrativos del mockup, sin inferencia SDXL ni adaptadores LoRA. La foto cargada no cambia esas imágenes. Las regeneraciones no evalúan calidad visual ni conservación espacial.
 - El temporizador de regeneración solo avanza mientras se visualiza ese proyecto. Cambiar de cliente o pausar suspende la simulación; volver o reanudar la inicia de nuevo. La demo no ejecuta inferencia en segundo plano.
 - El resumen es determinista y está rotulado como demostración. No llama a Qwen ni demuestra fidelidad de un LLM real.
-- Vite sirve archivos estáticos. No hay endpoints `/api`, proxy a túneles antiguos, claves, cuentas remotas, publicación ni backend implementado.
+- Vite sirve archivos estáticos. No hay endpoints `/api`, proxy a túneles antiguos, claves, cuentas remotas, publicación ni backend incorporado en esta rama.
 
 ## Organización e integración pendiente
 
@@ -52,7 +52,7 @@ Después de instalar las dependencias, el recorrido funciona sin Internet. Los r
 - `src/storage.ts`, `src/useWorkspace.ts`: persistencia local y avisos de guardado.
 - `src/App.tsx`, `src/components.tsx`, `src/History.tsx`: chat, clientes, galería, diálogos e historial.
 
-Cuando Ian entregue el backend, sustituir la creación local por `POST /api/generations`, las decisiones por `PUT /api/generations/{id}/decisions/{version_id}`, los reintentos por `POST /api/generations/{id}/variations/{position}/retry`, y el resumen por `POST /api/generations/{id}/summary`. Usar las rutas de historial/borrado y la autenticación descritas en plan3. Habrá que acordar el esquema exacto de respuestas y mapear los IDs/versiones del servidor; los IDs de esta demo no constituyen un contrato cerrado de API.
+El backend ya está disponible en `origin/bedroom-backend`, pero no está integrado en esta rama. Antes de conectar, leer [CONTEXTO_PROYECTO.md](../CONTEXTO_PROYECTO.md) y `backend/FRONTEND.md` de esa rama: documentan autenticación Supabase, trabajos asíncronos y diferencias con el plan. Para integrar, sustituir la creación local por `POST /api/generations`, las decisiones por `PUT /api/generations/{id}/decisions/{version_id}`, los reintentos por `POST /api/generations/{id}/variations/{position}/retry`, y el resumen por `POST /api/generations/{id}/summary`. Usar las rutas de historial/borrado y la autenticación Supabase del contrato real de `backend/FRONTEND.md`. Contrastar los esquemas publicados y mapear los IDs/versiones del servidor; los IDs de esta demo no constituyen un contrato cerrado de API.
 
 Las pruebas con API real, fallos de túnel, cuentas privadas y persistencia externa del plan permanecen pendientes. La PoC de `poc/khipu_front` y el notebook existente se conservan como referencias independientes.
 

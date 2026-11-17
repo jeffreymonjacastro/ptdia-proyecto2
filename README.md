@@ -23,10 +23,14 @@ npm run build
 
 Las imágenes son ilustrativas y las regeneraciones reutilizan el ejemplo de cada estilo. Las fotos y decisiones se guardan en IndexedDB de este navegador, sin envíos a servicios externos. El perfil es demostrativo y no ofrece autenticación privada. La [guía del frontend](frontend/README.md) explica el recorrido, las verificaciones y los puntos de integración.
 
+## Contexto para continuar con otro agente
+
+Leer [CONTEXTO_PROYECTO.md](CONTEXTO_PROYECTO.md): reúne el flujo aprobado, las decisiones recientes, los puntos de conexión del frontend y el contrato real de `origin/bedroom-backend`, existente pero aún no incorporado en esta rama. Incluye las diferencias de autenticación, trabajos asíncronos, imágenes privadas y metadatos que deben resolverse al integrar.
+
 ## Referencias y trabajo pendiente
 
 - [`blueprint/plan/plan3.md`](blueprint/plan/plan3.md): plan vigente de dormitorios, catálogo, API propuesta y reparto.
 - [`poc/kaggle_back/`](poc/kaggle_back/README.md): prueba de concepto de inferencia; no equivale al backend completo de sesiones e historial.
 - [`poc/khipu_front/`](poc/khipu_front/README.md): chat de prueba anterior, independiente del nuevo frontend.
 
-La integración con FastAPI, SDXL/LoRA, Qwen, cuentas privadas y almacenamiento externo sigue pendiente. Las pruebas locales de la demo no acreditan generación real ni una integración con backend.
+El backend de sesiones existe en la rama `bedroom-backend`; su integración con este frontend, las cuentas privadas y la persistencia remota siguen pendientes en esta rama. Las pruebas locales de la demo no acreditan generación real ni una integración con backend.

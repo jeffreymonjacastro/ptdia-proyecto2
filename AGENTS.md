@@ -1,3 +1,12 @@
+# Contexto del proyecto
+
+Antes de cambiar el frontend, backend, contratos o integración, leer
+[CONTEXTO_PROYECTO.md](CONTEXTO_PROYECTO.md). Contiene el estado por rama, las
+decisiones vigentes del usuario, el contrato del backend existente, las diferencias
+con la demo y las verificaciones necesarias. Revisar las fuentes y referencias
+actuales indicadas allí antes de asumir que el backend aún no existe o de usar
+los contratos de las PoC antiguas. Mantener esa guía al cambiar la integración.
+
 # Superpowers
 
 Al trabajar en este repositorio, asegúrate de que Superpowers esté disponible
