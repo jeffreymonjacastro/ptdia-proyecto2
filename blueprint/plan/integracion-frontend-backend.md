@@ -43,9 +43,11 @@ Archivos: `frontend/src/ConnectedApp.tsx`, `frontend/src/useRemoteWorkspace.ts`,
 
 - [x] Probar backend con PostgreSQL local desechable, sin tocar infraestructura compartida.
 - [x] Verificar frontend con JSON y transporte controlados y recorrido en navegador; si hay configuración real, consultar salud/contrato y distinguir verificaciones autenticadas disponibles de las pendientes.
-- [ ] Revisión independiente de toda la integración y una pasada de correcciones con pruebas.
-- [ ] Actualizar guías y contexto, commit/push de la rama solicitada sin fusionarla a main.
+- [x] Revisión independiente de toda la integración y una pasada de correcciones con pruebas.
+- [x] Actualizar guías y contexto, commit/push de la rama solicitada sin fusionarla a main.
 
 ## Evidencia local
 
-55 pruebas frontend y build pasan; fixture contrastado con SessionDetail; 19 pruebas backend sobre PostgreSQL desechable. Recorrido con FastAPI/worker locales y Auth/inferencia controladas: carga, cinco propuestas, rechazo con motivo y regeneración individual, cinco aceptaciones, resumen persistido tras recarga y cuenta B sin sesiones de A. Supabase/ngrok/GPU reales pendientes de configuración.
+72 pruebas frontend y build pasan; fixture contrastado con SessionDetail; 19 pruebas backend sobre PostgreSQL desechable. Recorrido con FastAPI/worker locales y Auth/inferencia controladas: carga, cinco propuestas, rechazo con motivo y regeneración individual, cinco aceptaciones, resumen persistido tras recarga y cuenta B sin sesiones de A. Supabase/ngrok/GPU reales pendientes de configuración.
+
+Revisión independiente completada sobre d08b246..27b4a70. Se corrigieron los hallazgos funcionales con 17 pruebas adicionales que fallaron antes de la corrección; suite final 72/72. La sesión Supabase comparte localStorage entre pestañas; el fallback sin configuración es demo visiblemente rotulada. Pendiente menor documentado: etiquetas locales ante cambios simultáneos de varias pestañas de una cuenta.

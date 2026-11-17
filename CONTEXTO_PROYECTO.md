@@ -78,7 +78,7 @@ Los `VITE_*` se publican al navegador. Nunca incluir `sb_secret_*`, JWT `service
 | Archivo | Responsabilidad |
 | --- | --- |
 | `frontend/src/ConnectedApp.tsx`, `config.ts` | Selección de modo y validación de configuración pública. |
-| `frontend/src/AuthStudio.tsx` | SDK Supabase, acceso con cuenta precreada, sesión en `sessionStorage`, renovación y separación por propietario. Salir desmonta el workspace y sus imágenes. |
+| `frontend/src/AuthStudio.tsx`, `auth.ts` | SDK Supabase, acceso con cuenta precreada, sesión en `localStorage` compartida entre pestañas, renovación y separación por propietario. Salir desmonta el workspace y sus imágenes. |
 | `frontend/src/api.ts` | Bearer vigente por petición, un refresco ante 401, cabecera ngrok, multipart, errores HTTP y claves de idempotencia. Transporte configurable para pruebas. |
 | `frontend/src/remote.ts` | DTO, validación JSON y adaptación a presentación: IDs opacos, seeds string, puntero actual, jobs, historial y resumen vigente. |
 | `frontend/src/useRemoteWorkspace.ts` | Listado/detalle, selección, acciones remotas, polling, recuperación y etiquetas locales por cuenta. Sin IndexedDB de demo. |
@@ -122,6 +122,7 @@ Reglas de adaptación:
 - El resumen es **`session.summary.summary`** y solo se muestra con revisión e IDs actuales aceptados. `historical_rejections` puede incluir una versión actualmente aceptada con un rechazo previo.
 - Además de ready/paused/completed hay generating/needs_confirmation/rejected/failed. Los estados iniciales pueden carecer de versiones: mostrar espera/confirmación/nueva foto/reintento, sin imágenes ficticias.
 - Las imágenes se resuelven contra el origen configurado y se descargan con bearer, nunca con un `<img src>` directo al API. Rechazar otro origen antes de enviar credenciales; revocar object URLs al salir.
+- Las peticiones privadas bloquean redirecciones, incluido multipart; no reenviar fotos/preferencias a otro dominio aunque un proxy responda 307/308.
 - Tras una escritura confirmada se mantiene su job conocido aunque falle la lectura siguiente, para poder recuperar/pollear sin repetir la acción.
 - Errores `detail` pueden ser string o lista FastAPI. 401 refresca una vez; 409/413/422 informan el detalle; desconexión/HTML ngrok/503 muestran recuperación sin fabricar éxito.
 
@@ -132,6 +133,8 @@ Reglas de adaptación:
 - **Rechazo:** la UI exige motivo; el contrato backend fusionado mantiene `reason` opcional (hasta 1000) para otros clientes. No se cambió ese contrato al integrar frontend.
 - **Pausa:** se deshabilita durante jobs; el servidor puede responder 409 a un conflicto concurrente. No ofrecer cancelación de GPU.
 - **Persistencia:** sesiones/versiones/decisiones/jobs/resumen en servidor; no reconstruirlos con `updateProject`/`buildSummary` ni revivirlos desde IndexedDB. Los jobs continúan con la página cerrada y se recuperan al abrir la sesión.
+- **Sesión compartida entre pestañas:** se usa `localStorage` para coincidir con los eventos BroadcastChannel del SDK. Cambiar de cuenta o salir afecta a todas las pestañas del mismo perfil; persiste al reabrir. Una petición de otro propietario se cancela sin cerrar la cuenta nueva. Los fallos transitorios de renovación permiten reintentar sin borrar el acceso.
+- **Pendiente menor:** dos pestañas de la misma cuenta pueden sobrescribir el mapa local de etiquetas cliente/espacio. No afecta a fotos, decisiones ni sesiones remotas; mejorar después la escritura por proyecto/sincronización.
 - **Configuración externa:** faltan dominio ngrok real y comprobación autenticada en la infraestructura del equipo. El placeholder se conserva a petición del usuario. No afirmar que esta sesión verificó GPU o Supabase reales.
 
 ## 8. Backend y operación
@@ -156,11 +159,12 @@ Para pruebas backend usar PostgreSQL **local desechable** y DSN de loopback/base
 
 Verificado durante esta integración:
 
-- **55/55 pruebas frontend** y `npm run build` pasan. Suite API/DTO/controlador/UI, más las reglas, fotos y persistencia demo anteriores. Procesos separados por archivo evitan contaminación entre Happy DOM y FormData nativo.
+- **72/72 pruebas frontend** y `npm run build` pasan. Suite API/DTO/controlador/UI, más las reglas, fotos y persistencia demo anteriores. Procesos separados por archivo evitan contaminación entre Happy DOM y FormData nativo.
 - Fixture `frontend/src/fixtures/session.json` validado contra el modelo **`SessionDetail`** real del backend.
 - **19/19 pruebas backend** con PostgreSQL 17 local desechable. Sin cambios de contrato backend.
 - Navegador contra FastAPI/Repository/Worker reales locales, con **Auth e inferencia controladas de prueba**: acceso A, carga, cinco slots, aceptación, rechazo Attic con motivo, Attic V2 conservando las otras cuatro, cinco aceptaciones, resumen del servidor con rechazo histórico, recarga y cuenta B sin proyectos de A. No es evidencia GPU ni Supabase remoto.
-- Correcciones verificadas con pruebas que fallaron antes: clave ante ACK incompleto, job tras fallo de lectura posterior, imagen sin ruta, botones de imagen anidados y receptor nativo de `fetch` en navegador.
+- Revisión independiente de la integración completada; corregidos conflictos 409, carreras de historial/cuenta, borrado en estados iniciales, fallos/ACK del resumen, pausa confirmada, redirecciones privadas y borradores separados de aceptación/rechazo mediante 17 regresiones RED→GREEN. El modo sin configuración conserva la demo claramente etiquetada; un API incompleto nunca cae a demo.
+- Correcciones previas verificadas con pruebas que fallaron antes: clave ante ACK incompleto, job tras fallo de lectura posterior, imagen sin ruta, botones de imagen anidados y receptor nativo de `fetch` en navegador.
 
 Pendiente en infraestructura real cuando se rellene la configuración:
 

@@ -1,4 +1,4 @@
-import { STYLE_IDS, currentVersion, type Decision, type Job, type Project, type Style } from './domain.ts'
+import { STYLE_IDS, currentVersion, type Decision, type Job, type Project, type Style, type Summary } from './domain.ts'
 
 export type RemoteDecision = { version_id: string; decision: 'accepted' | 'rejected'; reason: string | null; created_at: string }
 export type RemoteVersion = {
@@ -53,13 +53,26 @@ export function parseSession(value: unknown): RemoteSession {
   }
   if (['ready', 'paused', 'completed'].includes(p.status) && (positions.size !== 5 || p.variations.some(v => !v.current_version_id))) throw problem()
   if (p.summary !== null) {
-    const s = p.summary
-    if (!s || !Number.isSafeInteger(s.revision) || !text(s.summary) || !strings(s.accepted_version_ids)
-      || !strings(s.rejected_version_ids) || !Array.isArray(s.historical_rejections)
-      || [...s.accepted_version_ids, ...s.rejected_version_ids].some(id => !versionIds.has(id))
-      || s.historical_rejections.some(e => !versionIds.has(e.version_id) || !(e.reason === null || text(e.reason)) || !text(e.created_at))) throw problem()
+    const s = parseSummary(p.summary)
+    if ([...s.accepted_version_ids, ...s.rejected_version_ids].some(id => !versionIds.has(id))
+      || s.historical_rejections.some(e => !versionIds.has(e.version_id))) throw problem()
   }
   return p
+}
+export function parseSummary(value:unknown):RemoteSummary {
+  const s=value as RemoteSummary
+  if (!s || !Number.isSafeInteger(s.revision) || !text(s.summary) || !strings(s.accepted_version_ids)
+    || !strings(s.rejected_version_ids) || !Array.isArray(s.historical_rejections)
+    || s.historical_rejections.some(e=>!e || !text(e.version_id) || !(e.reason===null || text(e.reason)) || !text(e.created_at))) throw problem()
+  return s
+}
+export function currentSummary(summary:RemoteSummary|null, project:Pick<Project,'revision'|'proposals'>):Summary|undefined {
+  const acceptedIds=project.proposals.filter(p=>currentVersion(p).status==='accepted').map(p=>currentVersion(p).id)
+  const versionIds=new Set(project.proposals.flatMap(p=>p.versions.map(v=>v.id)))
+  if (!summary || summary.revision!==project.revision || acceptedIds.length!==5 || summary.accepted_version_ids.length!==5
+    || !acceptedIds.every(id=>summary.accepted_version_ids.includes(id))
+    || [...summary.rejected_version_ids,...summary.historical_rejections.map(e=>e.version_id)].some(id=>!versionIds.has(id))) return undefined
+  return {revision:summary.revision,text:summary.summary,acceptedVersionIds:summary.accepted_version_ids,rejectedVersionIds:summary.rejected_version_ids}
 }
 export function toProject(session: RemoteSession, meta?: ProjectMeta): Project {
   const jobs = session.jobs.filter(j => j.kind === 'regenerate')
@@ -78,17 +91,13 @@ export function toProject(session: RemoteSession, meta?: ProjectMeta): Project {
     id: `${v.id}:${index}`, versionId: v.id, position: slot.position, status: event.decision,
     reason: event.reason ?? '', createdAt: event.created_at,
   })))).sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-  const summary = session.summary
-  const acceptedIds = proposals.filter(p => currentVersion(p).status === 'accepted').map(p => currentVersion(p).id)
-  const validSummary = summary && summary.revision === session.revision && acceptedIds.length === 5
-    && summary.accepted_version_ids.length === 5 && acceptedIds.every(id => summary.accepted_version_ids.includes(id))
   return {
     id: session.id, client: meta?.client || `Sesión ${new Date(session.created_at).toLocaleDateString('es-PE')}`,
     room: meta?.room || `Dormitorio · ${session.id.slice(0, 8)}`, preferences: session.preferences,
     photo: { kind: 'remote', name: 'dormitorio-original', url: session.original_image_url },
     createdAt: session.created_at, status: session.status, revision: session.revision, proposals, events,
     messages: [{ id: session.id, text: session.preferences || 'Explorar cinco estilos para este dormitorio.', createdAt: session.created_at }], jobs: session.jobs,
-    summary: validSummary ? { revision: summary.revision, text: summary.summary, acceptedVersionIds: summary.accepted_version_ids, rejectedVersionIds: summary.rejected_version_ids } : undefined,
+    summary: currentSummary(session.summary,{revision:session.revision,proposals}),
   }
 }
 export const activeJobs = (project: Project) => project.jobs?.filter(j => j.status === 'queued' || j.status === 'running') ?? []

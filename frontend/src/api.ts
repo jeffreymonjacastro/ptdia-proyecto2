@@ -1,4 +1,4 @@
-import { parseJob, parseSession, parseSessionItem, type SessionItem } from './remote.ts'
+import { parseJob, parseSession, parseSessionItem, parseSummary, type SessionItem } from './remote.ts'
 
 export class ApiError extends Error {
   status: number
@@ -25,7 +25,7 @@ export class BedroomApi {
     if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) throw new Error('La URL del backend no es válida.')
     this.origin = parsed.origin
   }
-  private async request(path: string, init: RequestInit = {}, binary = false): Promise<any> {
+  private async request(path: string, init: RequestInit = {}, binary = false, valid?: (data:any,status:number)=>boolean): Promise<any> {
     const url = new URL(path, this.origin)
     if (url.origin !== this.origin) throw new Error('La imagen o petición pertenece a otro origen.')
     const signal = init.signal ? AbortSignal.any([init.signal, AbortSignal.timeout(45000)]) : AbortSignal.timeout(45000)
@@ -35,7 +35,7 @@ export class BedroomApi {
       const headers = new Headers(init.headers)
       headers.set('Authorization', `Bearer ${token}`)
       headers.set('ngrok-skip-browser-warning', 'true')
-      try { return await this.fetcher(url.toString(), { ...init, signal, headers, cache: 'no-store' }) }
+      try { return await this.fetcher(url.toString(), { ...init, signal, headers, cache: 'no-store', redirect: 'error' }) }
       catch (error) {
         if (error instanceof Error && error.name === 'TimeoutError') throw new ApiError(503, 'network_timeout', 'La conexión tardó demasiado. Puedes reintentar la misma acción.')
         throw error
@@ -55,17 +55,17 @@ export class BedroomApi {
       const detail = Array.isArray(data?.detail) ? data.detail.map((d: any) => d.msg || 'Dato inválido').join('. ') : undefined
       throw new ApiError(response.status, code, detail || messages[code] || `No se completó la petición (HTTP ${response.status}).`)
     }
+    if (valid && !valid(data,response.status)) throw new ApiError(502, 'invalid_response', 'El backend devolvió un JSON sin los identificadores esperados. Reintenta para recuperar la respuesta de la misma acción.')
     return data
   }
-  private async write(method: string, path: string, body?: BodyInit, identity = '', json = false, valid?: (data:any)=>boolean) {
+  private async write(method: string, path: string, body?: BodyInit, identity = '', json = false, valid?: (data:any,status:number)=>boolean) {
     const intent = JSON.stringify([method, path, identity])
     const key = this.intents.get(intent) ?? crypto.randomUUID()
     this.intents.set(intent, key)
     const headers = new Headers({ 'Idempotency-Key': key })
     if (json) headers.set('Content-Type', 'application/json')
     try {
-      const result = await this.request(path, { method, body, headers })
-      if (valid && !valid(result)) throw new ApiError(502, 'invalid_response', 'El backend devolvió un JSON sin los identificadores esperados. Reintenta para recuperar la respuesta de la misma acción.')
+      const result = await this.request(path, { method, body, headers }, false, valid)
       this.intents.delete(intent)
       return result
     } catch (error) {
@@ -94,12 +94,18 @@ export class BedroomApi {
   async decide(id: string, version: string, status: 'accepted' | 'rejected', reason: string) {
     if (status === 'rejected' && !reason.trim()) throw new Error('Indica el motivo del rechazo.')
     const body = JSON.stringify({ decision: status, ...(reason.trim() ? { reason: reason.trim() } : {}) })
-    return this.write('PUT', `/api/generations/${encodeURIComponent(id)}/decisions/${encodeURIComponent(version)}`, body, body, true, data => !!data && data.session_id === id && data.version_id === version && data.decision === status)
+    return this.write('PUT', `/api/generations/${encodeURIComponent(id)}/decisions/${encodeURIComponent(version)}`, body, body, true, (data,httpStatus) => !!data && data.session_id === id && data.version_id === version && data.decision === status && (httpStatus === 200 || (httpStatus === 202 && typeof data.job_id === 'string' && !!data.job_id)))
   }
   async action(id: string, action: 'summary' | 'retry' | 'confirm-bedroom', position?: number) {
     const path = position ? `variations/${position}/retry` : action
-    return this.write('POST', `/api/generations/${encodeURIComponent(id)}/${path}`, undefined, '', false, data => !!data && ((data.session_id === id && typeof data.job_id === 'string') || (action === 'summary' && typeof data.summary === 'string' && Number.isSafeInteger(data.revision))))
+    return this.write('POST', `/api/generations/${encodeURIComponent(id)}/${path}`, undefined, '', false, (data,status) => {
+      if (status===202) return !!data && data.session_id===id && typeof data.job_id==='string' && !!data.job_id
+      if (status!==200 || action!=='summary') return false
+      try { parseSummary(data); return true } catch { return false }
+    })
   }
-  async pause(id: string, paused: boolean) { return this.request(`/api/generations/${encodeURIComponent(id)}`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({paused}) }) }
+  async pause(id: string, paused: boolean) {
+    return this.request(`/api/generations/${encodeURIComponent(id)}`, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({paused}) }, false, data=>data?.id===id && (paused ? data.status==='paused' : ['ready','completed'].includes(data.status)))
+  }
   async delete(id: string) { return this.request(`/api/generations/${encodeURIComponent(id)}`, {method:'DELETE'}) }
 }

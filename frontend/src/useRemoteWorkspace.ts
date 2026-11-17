@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { BedroomApi, ApiError } from './api.ts'
-import { activeJobs, toProject, type ProjectMeta, type SessionItem } from './remote.ts'
+import { activeJobs, toProject, parseSummary, currentSummary, type ProjectMeta, type SessionItem } from './remote.ts'
 import type { Workspace } from './storage.ts'
 import type { Job, Project, ProjectAction, ProjectInput } from './domain.ts'
 
@@ -19,6 +19,7 @@ export function useRemoteWorkspace(api: BedroomApi, account: Account, signOut: (
   const state = useRef(workspace)
   state.current = workspace
   const sequences = useRef(new Map<string, number>())
+  const listEpoch = useRef(0)
   const working = useRef(new Set<string>())
   const metaKey = `bedroom-project-labels:${account.id}`
   const activeKey = `bedroom-active:${account.id}`
@@ -55,8 +56,9 @@ export function useRemoteWorkspace(api: BedroomApi, account: Account, signOut: (
   const refresh = useCallback(async () => { setError(''); setRefreshVersion(value => value + 1) }, [])
   useEffect(() => {
     const abort = new AbortController()
+    const epoch=listEpoch.current
     void api.list(abort.signal).then(items => {
-      if (abort.signal.aborted || !alive.current) return
+      if (abort.signal.aborted || !alive.current || epoch!==listEpoch.current) return
       let selected: string | null = null
       try { selected = sessionStorage.getItem(activeKey) } catch { /* Selección efímera si no hay storage. */ }
       setWorkspace(previous => {
@@ -93,13 +95,18 @@ export function useRemoteWorkspace(api: BedroomApi, account: Account, signOut: (
     timeout = setTimeout(poll, 2500)
     return () => { abort.abort(); clearTimeout(timeout) }
   }, [api, activeId, jobIds, loadSession, report])
-  const run = useCallback(async (key: string, operation: () => Promise<void>) => {
+  const run = useCallback(async (key: string, operation: () => Promise<void>, sessionId?:string) => {
     if (working.current.has(key)) return
     working.current.add(key); setSaving(true); setError('')
     try { await operation() }
-    catch (error) { report(error); throw error }
+    catch (error) {
+      if (error instanceof ApiError && error.status===409 && sessionId && alive.current) {
+        try { await loadSession(sessionId) } catch { /* Se conserva el conflicto original y la recuperación manual. */ }
+      }
+      report(error); throw error
+    }
     finally { working.current.delete(key); if (alive.current) setSaving(working.current.size > 0) }
-  }, [report])
+  }, [report,loadSession])
   const reloadAfterWrite = useCallback(async (id: string) => {
     try { await loadSession(id) } catch (error) {
       report(error)
@@ -108,12 +115,14 @@ export function useRemoteWorkspace(api: BedroomApi, account: Account, signOut: (
   }, [loadSession, report])
   const applyAck = useCallback((id:string, result:any, kind?:Job['kind'], position:number|null=null) => {
     if (!alive.current) return
+    sequences.current.set(id,(sequences.current.get(id)||0)+1)
     setWorkspace(previous => previous && { ...previous, projects:previous.projects.map(p => {
       if (p.id !== id) return p
       const known=p.jobs?.find(j=>j.id===result.job_id)
       const job:Job|undefined = kind && typeof result.job_id==='string' ? known ?? {id:result.job_id,kind,status:'queued',position,progress:0,error:null} : undefined
       const running=job && ['queued','running'].includes(job.status)
       return { ...p, status:kind==='initial' ? 'generating' : p.status,
+        summary:kind==='summary' && typeof result.summary==='string' ? currentSummary(parseSummary(result),p) : p.summary,
         jobs:job ? [job,...(p.jobs??[]).filter(j=>j.id!==job.id)] : p.jobs,
         proposals:p.proposals.map(slot=>({ ...slot,
           generation:running && kind==='regenerate' && slot.position===position ? 'generating' : slot.generation,
@@ -130,11 +139,15 @@ export function useRemoteWorkspace(api: BedroomApi, account: Account, signOut: (
       if (action.type === 'decide') applyAck(id,await api.decide(id, action.versionId, action.status, action.reason),action.status==='rejected' ? 'regenerate' : undefined,action.position)
       else if (action.type === 'retry') applyAck(id,await api.action(id, 'retry', action.position),'regenerate',action.position)
       else if (action.type === 'summarize') applyAck(id,await api.action(id, 'summary'),'summary')
-      else if (action.type === 'pause' || action.type === 'resume') await api.pause(id, action.type === 'pause')
+      else if (action.type === 'pause' || action.type === 'resume') {
+        const ack=await api.pause(id, action.type === 'pause')
+        sequences.current.set(id,(sequences.current.get(id)||0)+1)
+        if(alive.current)setWorkspace(previous=>previous&&{...previous,projects:previous.projects.map(p=>p.id===id?{...p,status:ack.status}:p)})
+      }
       else throw new Error('Esta acción solo está disponible en la demostración.')
-      setWorkspace(previous => previous && { ...previous, projects: previous.projects.map(p => p.id === id ? { ...p, summary: action.type === 'summarize' ? p.summary : undefined } : p) })
+      setWorkspace(previous => previous && { ...previous, projects: previous.projects.map(p => p.id === id ? { ...p, summary: ['decide','retry'].includes(action.type) ? undefined : p.summary } : p) })
       await reloadAfterWrite(id)
-    })
+    },id)
   }, [api, run, reloadAfterWrite, applyAck])
   const create = useCallback(async (input: ProjectInput) => {
     if (input.photo.kind !== 'upload' || !input.bedroomConfirmed || !input.consent) throw new Error('Selecciona y autoriza una fotografía de dormitorio.')
@@ -143,6 +156,7 @@ export function useRemoteWorkspace(api: BedroomApi, account: Account, signOut: (
       const result = await api.upload(photo, input.preferences, input.consent)
       if (!result || typeof result.session_id !== 'string' || typeof result.job_id !== 'string') throw new Error('El backend no devolvió el identificador del proyecto.')
       const id = result.session_id
+      listEpoch.current++
       metadata.current[id] = { client:input.client.trim(), room:input.room.trim() || 'Dormitorio principal' }
       try { localStorage.setItem(metaKey, JSON.stringify(metadata.current)) } catch { setError('El proyecto está guardado en el servidor, pero su nombre solo se conservará en esta vista.') }
       const next = stub({id,status:'generating',revision:0,created_at:new Date().toISOString()})
@@ -153,6 +167,8 @@ export function useRemoteWorkspace(api: BedroomApi, account: Account, signOut: (
   const remove = useCallback(async (id: string) => {
     await run(`delete:${id}`, async () => {
       await api.delete(id)
+      listEpoch.current++
+      sequences.current.set(id,(sequences.current.get(id)||0)+1)
       delete metadata.current[id]
       try { localStorage.setItem(metaKey, JSON.stringify(metadata.current)) } catch { /* El servidor confirma el borrado. */ }
       setWorkspace(previous => {
@@ -165,7 +181,7 @@ export function useRemoteWorkspace(api: BedroomApi, account: Account, signOut: (
   const initial = useCallback(async (action: 'retry' | 'confirm-bedroom') => {
     const id = state.current?.activeId
     if (!id) return
-    await run(`initial:${id}`, async () => { applyAck(id,await api.action(id, action),'initial'); await reloadAfterWrite(id) })
+    await run(`initial:${id}`, async () => { applyAck(id,await api.action(id, action),'initial'); await reloadAfterWrite(id) },id)
   }, [api, run, reloadAfterWrite, applyAck])
   return { connected:true as const, workspace, setWorkspace, saving, storageError, retrySave:refresh, onAction, create, remove, initial, refresh, signOut }
 }

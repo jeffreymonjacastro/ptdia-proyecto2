@@ -95,3 +95,23 @@ test('el transporte nativo conserva el receptor global que requiere fetch en el 
   const api=new BedroomApi(origin,async()=>'token',nativeLike)
   await api.list()
 })
+
+test('un rechazo 202 sin job conserva la clave; el no-op 200 sin job sigue siendo válido',async()=>{
+  const keys:string[]=[]
+  const api=new BedroomApi(origin,async()=>'t',async(_url:any,init:any)=>{
+    keys.push(new Headers(init.headers).get('Idempotency-Key')!)
+    return Response.json({session_id:'s',version_id:'v',decision:'rejected',...(keys.length===2?{job_id:'j'}:{})},{status:keys.length<3?202:200})
+  })
+  await assert.rejects(api.decide('s','v','rejected','Conservar ventana'),/JSON|identificador|respuesta/i)
+  await api.decide('s','v','rejected','Conservar ventana')
+  assert.equal(keys[0],keys[1])
+  await api.decide('s','v','rejected','Conservar ventana')
+  assert.notEqual(keys[1],keys[2])
+})
+test('la foto y las preferencias privadas nunca siguen redirecciones',async()=>{
+  const api=new BedroomApi(origin,async()=>'t',async(_url:any,init:any)=>{
+    assert.equal(init.redirect,'error')
+    return Response.json({session_id:'s',job_id:'j'},{status:202})
+  })
+  await api.upload(new File(['photo'],'foto.png'),'Conservar cama',true)
+})

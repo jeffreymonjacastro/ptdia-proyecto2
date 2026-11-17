@@ -167,3 +167,31 @@ test('una miniatura privada fallida mantiene un único botón para abrirla', asy
   const preview=view.getByRole('button',{name:'Ampliar Luxury, versión 1'})
   assert.equal(preview.querySelectorAll('button').length,0)
 })
+
+test('un borrador de rechazo cancelado no se registra como motivo de aceptación',()=>{
+  const actions:ProjectAction[]=[]
+  const view=render(createElement(ProposalCard,{proposal:example().proposals[0],paused:false,onPreview(){},onAction:action=>{actions.push(action)}}))
+  fireEvent.click(view.getByRole('button',{name:'Añadir motivo opcional'}))
+  fireEvent.change(view.getByRole('textbox',{name:'Motivo para Luxury'}),{target:{value:'Aceptación opcional'}})
+  fireEvent.click(view.getByRole('button',{name:'Rechazar Luxury'}))
+  assert.equal((view.getByRole('textbox',{name:'Motivo del rechazo'}) as HTMLTextAreaElement).value,'')
+  fireEvent.change(view.getByRole('textbox',{name:'Motivo del rechazo'}),{target:{value:'Cambiar techo'}})
+  fireEvent.click(view.getByRole('button',{name:'Cancelar'}))
+  fireEvent.click(view.getByRole('button',{name:'Aceptar Luxury'}))
+  assert.equal((actions[0] as Extract<ProjectAction,{type:'decide'}>).reason,'Aceptación opcional')
+})
+const {default:App}=await import('./App.tsx')
+const remoteView=(p:import('./domain.ts').Project):import('./useRemoteWorkspace.ts').RemoteController=>({connected:true,workspace:{schema:1,projects:[p],activeId:p.id,designer:'a@example.test'},setWorkspace(){},saving:false,storageError:'',retrySave:async()=>{},onAction:async()=>{},create:async()=>{},remove:async()=>{},initial:async()=>{},refresh:async()=>{},signOut:async()=>{}})
+for(const status of ['rejected','failed','needs_confirmation','generating'] as const)test(`se puede solicitar borrar una fotografía en estado ${status}`,()=>{
+  const p=example();p.status=status;p.proposals=[]
+  const view=render(createElement(App,{remote:remoteView(p)}))
+  fireEvent.click(view.getByRole('button',{name:/^Eliminar proyecto$/}))
+  assert.ok(view.getByRole('dialog',{name:'¿Eliminar este proyecto?'}))
+})
+test('un resumen fallido muestra el error y permite reintentar explícitamente',()=>{
+  const p=example();p.proposals.forEach(slot=>slot.versions[0].status='accepted')
+  p.jobs=[{id:'summary-job',kind:'summary',status:'failed',position:null,progress:0,error:'inference_failed'}]
+  const view=render(createElement(App,{remote:remoteView(p)}))
+  assert.match(view.getByRole('alert').textContent!,/resumen/i)
+  assert.ok(view.getByRole('button',{name:'Reintentar resumen'}))
+})

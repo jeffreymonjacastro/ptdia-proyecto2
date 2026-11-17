@@ -89,7 +89,7 @@ export default function App({ remote }: { remote?: RemoteController }) {
         </div>
       </header>
       {storageError && <div className="storage-warning" role="alert"><Icon name="info" size={17} /><p>{storageError}</p><button onClick={() => void retrySave()}>Reintentar</button></div>}
-      {project ? (remote && (project.proposals.length !== 5 || !['ready','paused','completed'].includes(project.status)) ? <RemoteStatus project={project} remote={remote} onNew={() => setDialog('new')}/> : <Workbench key={project.id} project={project} onAction={onAction} onNew={() => setDialog('new')} onDelete={() => setDialog('delete')} connected={!!remote} saving={saving}/>)
+      {project ? (remote && (project.proposals.length !== 5 || !['ready','paused','completed'].includes(project.status)) ? <RemoteStatus project={project} remote={remote} onNew={() => setDialog('new')} onDelete={() => setDialog('delete')}/> : <Workbench key={project.id} project={project} onAction={onAction} onNew={() => setDialog('new')} onDelete={() => setDialog('delete')} connected={!!remote} saving={saving}/>)
         : <div className="empty-studio"><Mark /><p className="eyebrow">UN ESPACIO POR IMAGINAR</p><h1>El próximo dormitorio<br />empieza contigo.</h1><p>Crea un proyecto y explora cinco estilos con tu cliente.</p><button className="button primary" onClick={() => setDialog('new')}><Icon name="plus" />Nuevo proyecto</button></div>}
     </main>
     {dialog === 'new' && <ProjectForm onClose={() => setDialog(null)} onCreate={addProject} onSubmitRemote={remote?.create} />}
@@ -123,7 +123,9 @@ function Workbench({ project, onAction, onNew, onDelete, connected = false, savi
   const paused = project.status === 'paused'
   const accepted = project.proposals.filter(p => currentVersion(p).status === 'accepted').length
   const rejected = project.events.filter(e => e.status === 'rejected')
+  const summaryJob=project.jobs?.find(j=>j.kind==='summary')
   const summaryBusy = activeJobs(project).some(j => j.kind === 'summary')
+  const summaryFailed=connected && summaryJob?.status==='failed' && !project.summary
   const sendAction = (action:ProjectAction) => { const result = onAction(action); if (result) void result.catch(() => {}) }
   function send(event: FormEvent) {
     event.preventDefault()
@@ -153,8 +155,9 @@ function Workbench({ project, onAction, onNew, onDelete, connected = false, savi
           <p className="demo-gallery-caption"><Icon name="info" size={13} />{connected ? 'Propuestas generadas desde tu fotografía. Revisa la distribución y los detalles antes de aceptar.' : 'Imágenes de ejemplo. La demo no transforma tu fotografía; cada regeneración reutiliza el mismo ejemplo.'}</p>
         </section>
         <section className="selection-progress" aria-label="Progreso de selección"><div className="progress-heading"><span role="status"><Icon name="check" size={16} /><strong>{accepted} de 5</strong> propuestas aceptadas</span><div className="progress-dots" aria-hidden="true">{project.proposals.map(p => <span key={p.position} className={currentVersion(p).status === 'accepted' ? 'done' : ''} />)}</div></div>
-          <div className="progress-bottom"><p>{summaryBusy ? 'Preparando el resumen de tus decisiones…' : paused ? 'Reanuda la sesión para continuar revisando.' : accepted === 5 ? 'Todo listo. Revisa el resumen de tus decisiones.' : 'Al rechazar, se prepara solo una nueva versión. Las aceptadas se conservan.'}</p><button className="summary-button" disabled={!canSummarize(project) || (connected && (saving || summaryBusy))} onClick={() => { sendAction({ type: 'summarize' }); window.setTimeout(() => end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 50) }}><Icon name="sparkle" size={15} />{summaryBusy ? 'Preparando…' : project.summary ? 'Actualizar resumen' : 'Resumen final'}<Icon name="chevron" size={13} /></button></div>
+          <div className="progress-bottom"><p>{summaryBusy ? 'Preparando el resumen de tus decisiones…' : paused ? 'Reanuda la sesión para continuar revisando.' : accepted === 5 ? 'Todo listo. Revisa el resumen de tus decisiones.' : 'Al rechazar, se prepara solo una nueva versión. Las aceptadas se conservan.'}</p><button className="summary-button" disabled={!canSummarize(project) || (connected && (saving || summaryBusy))} onClick={() => { sendAction({ type: 'summarize' }); window.setTimeout(() => end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 50) }}><Icon name="sparkle" size={15} />{summaryBusy ? 'Preparando…' : summaryFailed ? 'Reintentar resumen' : project.summary ? 'Actualizar resumen' : 'Resumen final'}<Icon name="chevron" size={13} /></button></div>
         </section>
+        {summaryFailed && <p className="error-message" role="alert">No se pudo preparar el resumen. Tus decisiones están guardadas; puedes reintentar el resumen cuando se recupere el servicio.</p>}
         {project.messages.slice(1).map(message => <div className="feedback-exchange" key={message.id}><div className="user-message"><p>{message.text}</p></div><div className="assistant-feedback"><Mark small /><p>Preferencia anotada para las próximas versiones. Tus propuestas aceptadas se conservan. <span>Respuesta de demostración.</span></p></div></div>)}
         {rejected.length > 0 && <details className="rejections-summary"><summary><Icon name="clock" size={15} />{rejected.length} {rejected.length === 1 ? 'rechazo registrado' : 'rechazos registrados'}<Icon name="chevron" size={13} /></summary><ul>{rejected.map(event => {
           const p = project.proposals.find(p => p.position === event.position)!
@@ -183,7 +186,7 @@ function Workbench({ project, onAction, onNew, onDelete, connected = false, savi
   </>
 }
 
-function RemoteStatus({project,remote,onNew}:{project:Project;remote:RemoteController;onNew:()=>void}) {
+function RemoteStatus({project,remote,onNew,onDelete}:{project:Project;remote:RemoteController;onNew:()=>void;onDelete:()=>void}) {
   const job=activeJobs(project)[0]
   const run=(action:'retry'|'confirm-bedroom')=>void remote.initial(action).catch(()=>{})
   return <div className="conversation-scroll"><div className="conversation-content"><section className="remote-session-state" role="status"><Mark/>
@@ -191,5 +194,5 @@ function RemoteStatus({project,remote,onNew}:{project:Project;remote:RemoteContr
       : project.status==='rejected' ? <><h2>Necesitamos una foto de dormitorio.</h2><p>La imagen parece mostrar otro tipo de espacio. Elige una vista clara con la cama y la habitación visibles.</p><button className="button primary" onClick={onNew}>Subir otra fotografía</button></>
       : project.status==='failed' ? <><h2>No se completaron las cinco propuestas.</h2><p>Tu fotografía está conservada. Puedes volver a intentar el lote completo.</p><button className="button primary" onClick={()=>run('retry')} disabled={remote.saving}>Reintentar propuestas</button></>
       : <><h2>{project.status==='generating' ? 'Imaginando cinco posibilidades…' : 'Abriendo tu proyecto…'}</h2><p>El proceso puede tardar varios minutos. Puedes volver a este proyecto más tarde; el servidor conservará el trabajo.</p>{job && <p><span className="spinner"/> {job.status==='queued'?'En espera':'Preparando propuestas'} · {Math.max(0,Math.min(100,job.progress))}%</p>}</>}
-  </section>{project.photo.kind==='remote' && <div className="remote-original"><PhotoImage photo={project.photo}/><span>Fotografía original</span></div>}</div></div>
+  <button className="button secondary" onClick={onDelete} disabled={remote.saving}><Icon name="trash" size={16}/>Eliminar proyecto</button></section>{project.photo.kind==='remote' && <div className="remote-original"><PhotoImage photo={project.photo}/><span>Fotografía original</span></div>}</div></div>
 }

@@ -7,6 +7,7 @@ import type { ActionHandler } from './useRemoteWorkspace.ts'
 export function ProposalCard({ proposal, paused, onAction, onPreview, connected = false }: { proposal: Proposal; paused: boolean; onAction: ActionHandler; onPreview: () => void; connected?: boolean }) {
   const version = currentVersion(proposal)
   const [reason, setReason] = useState('')
+  const [rejectionReason,setRejectionReason]=useState('')
   const [showReason, setShowReason] = useState(false)
   const [showRejection, setShowRejection] = useState(false)
   const [pending, setPending] = useState(false)
@@ -14,7 +15,7 @@ export function ProposalCard({ proposal, paused, onAction, onPreview, connected 
   const busy = proposal.generation === 'generating'
   const failed = proposal.generation === 'failed'
   const style = STYLES[proposal.style]
-  useEffect(() => { setReason(''); setShowReason(false); setShowRejection(false) }, [version.id, version.status])
+  useEffect(() => { setReason(''); setRejectionReason(''); setShowReason(false); setShowRejection(false) }, [version.id, version.status])
   useEffect(() => {
     if (connected || !busy || paused) return
     // shortcut: la demo reutiliza la misma imagen; sustituir por la API de regeneración al integrar backend.
@@ -24,9 +25,9 @@ export function ProposalCard({ proposal, paused, onAction, onPreview, connected 
 
   const decide = (status: 'accepted' | 'rejected') => {
     setError('')
-    const reset = () => { setReason(''); setShowReason(false); setShowRejection(false); setPending(false) }
+    const reset = () => { setReason(''); setRejectionReason(''); setShowReason(false); setShowRejection(false); setPending(false) }
     try {
-      const result = onAction({ type: 'decide', position: proposal.position, versionId: version.id, status, reason })
+      const result = onAction({ type: 'decide', position: proposal.position, versionId: version.id, status, reason:status==='rejected'?rejectionReason:reason })
       if (result) { setPending(true); void result.then(reset, cause => { setPending(false); setError(cause instanceof Error ? cause.message : 'No se pudo guardar la decisión.') }) }
       else reset()
     } catch (cause) { setError(cause instanceof Error ? cause.message : 'No se pudo guardar la decisión.') }
@@ -47,7 +48,7 @@ export function ProposalCard({ proposal, paused, onAction, onPreview, connected 
       </div> : <>
         <div className="decision-actions">
           <button className={`decision-button accept ${version.status === 'accepted' ? 'selected' : ''}`} onClick={() => decide('accepted')} disabled={paused || pending || version.status === 'accepted'} aria-label={`Aceptar ${style.name}`}><Icon name="check" size={16} />{pending ? 'Guardando…' : 'Aceptar'}</button>
-          <button className="decision-button reject" onClick={() => { setError(''); setShowReason(false); setShowRejection(true) }} disabled={paused || pending} aria-label={`Rechazar ${style.name}`}><Icon name="close" size={15} />Rechazar</button>
+          <button className="decision-button reject" onClick={() => { setError(''); setRejectionReason(''); setShowReason(false); setShowRejection(true) }} disabled={paused || pending} aria-label={`Rechazar ${style.name}`}><Icon name="close" size={15} />Rechazar</button>
         </div>
         <button className="reason-toggle" onClick={() => setShowReason(!showReason)} disabled={paused} aria-expanded={showReason}>
           <Icon name="plus" size={12} />{showReason ? 'Ocultar motivo' : 'Añadir motivo opcional'}
@@ -58,10 +59,10 @@ export function ProposalCard({ proposal, paused, onAction, onPreview, connected 
     {error && !showRejection && <p className="error-message" role="alert">{error}</p>}
     {showRejection && <Dialog title={`¿Por qué rechazas ${style.name}?`} eyebrow={`PROPUESTA #${proposal.position} · V${version.number}`} onClose={() => setShowRejection(false)} busy={pending}>
       <p className="dialog-intro">Indica qué quieres cambiar. Al confirmar, se guardará el motivo y se preparará otra versión de {style.name}. Las demás propuestas se conservarán.</p>
-      <form className="project-form" onSubmit={event => { event.preventDefault(); if (reason.trim() && !paused && !pending) decide('rejected') }}>
-        <label>Motivo del rechazo<textarea value={reason} onChange={event => setReason(event.target.value)} placeholder="Por ejemplo: queremos conservar el techo original." rows={4} maxLength={500} required autoFocus disabled={pending}/></label>
+      <form className="project-form" onSubmit={event => { event.preventDefault(); if (rejectionReason.trim() && !paused && !pending) decide('rejected') }}>
+        <label>Motivo del rechazo<textarea value={rejectionReason} onChange={event => setRejectionReason(event.target.value)} placeholder="Por ejemplo: queremos conservar el techo original." rows={4} maxLength={500} required autoFocus disabled={pending}/></label>
         {error && <p className="error-message" role="alert">{error}</p>}
-        <div className="confirmation-actions"><button type="button" className="button secondary" onClick={() => setShowRejection(false)} disabled={pending}>Cancelar</button><button type="submit" className="button primary" disabled={paused || pending || !reason.trim()}>{pending ? 'Guardando…' : 'Rechazar y regenerar'}</button></div>
+        <div className="confirmation-actions"><button type="button" className="button secondary" onClick={() => setShowRejection(false)} disabled={pending}>Cancelar</button><button type="submit" className="button primary" disabled={paused || pending || !rejectionReason.trim()}>{pending ? 'Guardando…' : 'Rechazar y regenerar'}</button></div>
       </form>
     </Dialog>}
   </article>

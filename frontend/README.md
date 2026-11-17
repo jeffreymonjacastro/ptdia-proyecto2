@@ -27,7 +27,7 @@ VITE_SUPABASE_PUBLISHABLE_KEY=
 
 Completar URL del proyecto y publishable key de Supabase. El dominio ngrok es la URL base, sin `/docs`; las rutas `/api/` se añaden en el cliente. **Mientras `TU-BACKEND` siga como placeholder, se puede preparar el acceso Supabase, pero no se hacen llamadas al backend ficticio.** La vista informa que falta activar la conexión.
 
-Usar únicamente configuración pública en `VITE_*`: nunca claves `sb_secret_*`, claves `service_role`, contraseñas PostgreSQL ni tokens Kaggle/ngrok. Vite comprueba las claves secretas reconocibles antes de empaquetar. La sesión del usuario se gestiona con el SDK oficial en `sessionStorage`; no se ponen bearer tokens en `.env.local`.
+Usar únicamente configuración pública en `VITE_*`: nunca claves `sb_secret_*`, claves `service_role`, contraseñas PostgreSQL ni tokens Kaggle/ngrok. Vite comprueba las claves secretas reconocibles antes de empaquetar. La sesión del usuario se gestiona con el SDK oficial en `localStorage`, compartida entre pestañas del mismo perfil para mantener coherentes los eventos de Supabase y el bearer vigente. Cambiar de cuenta o salir afecta a esas pestañas; el acceso persiste al reabrir hasta cerrarlo o vencer. No se ponen bearer tokens en `.env.local`.
 
 Para usar solo la demo, definir `VITE_APP_MODE=demo`. Sin configuración alguna también se abre la demo, identificada como tal. Un modo API parcialmente configurado muestra el estado de configuración pendiente y no se convierte silenciosamente en demo. Guardar los cambios de entorno; reiniciar Vite si fuera necesario.
 
@@ -43,14 +43,16 @@ La fuente está en [`backend/FRONTEND.md`](../backend/FRONTEND.md), [`api.py`](.
 
 El cliente envía el bearer vigente y `ngrok-skip-browser-warning: true`, incluidas las descargas de imágenes. Renueva una vez el token ante `401`. Todos los POST/PUT llevan `Idempotency-Key`; se conserva al repetir una escritura de resultado desconocido por fallo de red o respuesta incompleta. Una acción confirmada nueva obtiene otra clave. Multipart no fija manualmente el boundary.
 
-Las imágenes se descargan como Blob autenticado y se muestran mediante object URLs que se revocan al sustituirse o desmontarse. El cliente rechaza rutas de otro origen antes de enviar credenciales. El modo conectado no guarda fotos, decisiones ni resúmenes en el IndexedDB de demo.
+Las imágenes se descargan como Blob autenticado y se muestran mediante object URLs que se revocan al sustituirse o desmontarse. El cliente rechaza rutas de otro origen antes de enviar credenciales y bloquea redirecciones para evitar reenviar fotos o preferencias. El modo conectado no guarda fotos, decisiones ni resúmenes en el IndexedDB de demo.
 
 ## Comportamiento y límites actuales
 
 - JPEG/PNG/WebP, hasta 10 MiB y 25 MP, con validación de cabecera y decodificación del navegador; el backend vuelve a validar e impone imágenes estáticas.
 - Al cambiar foto se restablecen confirmación de dormitorio y consentimiento. El formulario conectado no usa automáticamente la foto del mockup.
 - Se conservan los IDs del servidor y las semillas como string. La versión vigente se busca por `current_version_id`; `decision: null` significa pendiente. Un lote parcial no se muestra como cinco propuestas listas.
+- Una respuesta tardía del historial no revierte un alta/borrado confirmado; los conflictos 409 recargan el detalle antes de permitir repetir.
 - Los estados iniciales `generating`, `needs_confirmation`, `rejected` y `failed` tienen pantallas de espera, confirmación de dormitorio, nueva foto o reintento. Los jobs siguen en el backend aunque se cierre la página; al volver se recuperan.
+- Se puede eliminar también una sesión cuya foto fue rechazada, falló o sigue esperando propuestas. Un resumen fallido informa el error y permite reintentarlo.
 - Cinco versiones actuales aceptadas habilitan el resumen. Se muestra el texto de **`session.summary.summary`** solo para la revisión vigente. El cálculo de resumen de la demo no se ejecuta sobre datos remotos.
 - Pausar/reanudar se envía mediante PATCH. El control queda deshabilitado durante jobs activos porque el backend no ofrece cancelación de inferencia.
 - **Nombres de cliente/espacio:** la API actual no tiene esos campos; se recuerdan como etiquetas locales separadas por cuenta. En otro navegador se muestran sesiones identificadas por fecha/ID. No se confunden con el propietario autenticado.
@@ -58,11 +60,13 @@ Las imágenes se descargan como Blob autenticado y se muestran mediante object U
 - El usuario inicia sesión con una cuenta precreada por el equipo; no se inventan rutas `/api/auth/*` ni registro público.
 - La UI obliga a indicar motivo de rechazo; el esquema del backend fusionado conserva `reason` opcional para otros clientes. No se modifica ese contrato como efecto secundario de esta integración.
 
+Las etiquetas de cliente/espacio aún pueden sobrescribirse si se crean o borran proyectos simultáneamente en varias pestañas de la misma cuenta. Las sesiones, fotos y decisiones del servidor conservan su integridad; queda pendiente mejorar esa sincronización de etiquetas locales.
+
 ## Código y pruebas
 
 | Archivo | Responsabilidad |
 | --- | --- |
-| `src/ConnectedApp.tsx`, `src/AuthStudio.tsx`, `src/config.ts` | Selección de modo, configuración pública, acceso y limpieza de cuenta. |
+| `src/ConnectedApp.tsx`, `src/AuthStudio.tsx`, `src/auth.ts`, `src/config.ts` | Selección de modo, configuración pública, acceso y limpieza de cuenta. |
 | `src/api.ts` | Transporte, JSON de errores, renovación de bearer, multipart e idempotencia. |
 | `src/remote.ts` | Tipos, validación JSON y adaptación al modelo de presentación. |
 | `src/useRemoteWorkspace.ts` | Sesiones, selección, escrituras, polling y recuperación. |
@@ -76,6 +80,6 @@ npm run build
 npm run preview
 ```
 
-La suite usa Node/tsx con procesos separados por archivo, Testing Library, Happy DOM y `fake-indexeddb`. Verifica transporte HTTP con respuestas controladas, JSON real de sesiones, estado del controlador, motivos, consentimiento y recuperación. `src/fixtures/session.json` se contrastó con el modelo `SessionDetail` real del backend. Los tests de API/controlador no demuestran inferencia GPU ni disponibilidad del túnel.
+**Verificación local: 72 pruebas frontend y build pasan; 19 pruebas backend con PostgreSQL desechable.** La suite usa Node/tsx con procesos separados por archivo, Testing Library, Happy DOM y `fake-indexeddb`. Verifica transporte HTTP con respuestas controladas, JSON real de sesiones, estado del controlador, motivos, consentimiento y recuperación. `src/fixtures/session.json` se contrastó con el modelo `SessionDetail` real del backend. Los tests de API/controlador no demuestran inferencia GPU ni disponibilidad del túnel.
 
 La [guía backend](../backend/README.md) documenta las pruebas PostgreSQL, Kaggle, Supabase y el verificador autenticado con dos cuentas. Confirmar CORS para el origen exacto antes de las pruebas de navegador. Consultar [CONTEXTO_PROYECTO.md](../CONTEXTO_PROYECTO.md) para el estado de la rama y los siguientes pasos.
