@@ -130,3 +130,40 @@ test('una lectura fallida no introduce otros cinco clientes de ejemplo en la rec
   await waitFor(() => assert.ok(view.result.current.storageError))
   assert.equal(view.result.current.workspace!.projects.length, 0)
 })
+
+test('una tarjeta conectada nunca fabrica una versión mediante el temporizador de demo', async () => {
+  const p = example()
+  p.proposals[0].versions[0].status = 'rejected'
+  p.proposals[0].generation = 'generating'
+  const actions: ProjectAction[] = []
+  render(createElement(ProposalCard, {proposal:p.proposals[0],paused:false,connected:true,onAction:action=>{actions.push(action)},onPreview(){}}))
+  await new Promise(resolve=>setTimeout(resolve,1750))
+  assert.equal(actions.length,0)
+})
+
+test('el formulario conectado envía la foto y el consentimiento actuales sin crear un proyecto simulado', async () => {
+  let sent: import('./domain.ts').ProjectInput | undefined
+  let simulated = false
+  const view = render(createElement(ProjectForm,{onClose(){},onCreate(){simulated=true},onSubmitRemote:async input=>{sent=input}}))
+  fireEvent.change(view.getByRole('textbox',{name:'Nombre del cliente'}),{target:{value:'Cliente real'}})
+  const file=new File([new Uint8Array([137,80,78,71,13,10,26,10])],'propia.png',{type:'image/png'})
+  fireEvent.change(view.getByLabelText('Seleccionar fotografía de dormitorio'),{target:{files:[file]}})
+  await waitFor(()=>assert.ok(view.getByText('propia.png')))
+  view.getAllByRole('checkbox').forEach(box=>fireEvent.click(box))
+  fireEvent.submit(view.getByRole('button',{name:'Crear proyecto'}).closest('form')!)
+  await waitFor(()=>assert.ok(sent))
+  assert.equal(sent!.photo.kind,'upload')
+  assert.equal(sent!.consent,true)
+  assert.equal(sent!.bedroomConfirmed,true)
+  assert.equal(simulated,false)
+})
+
+test('una miniatura privada fallida mantiene un único botón para abrirla', async () => {
+  const {ImageContext}=await import('./PrivateImage.tsx')
+  const p=example()
+  p.proposals[0].versions[0].imageUrl='/api/generations/s/versions/v/image'
+  const view=render(createElement(ImageContext.Provider,{value:async()=>{throw new Error('Sin conexión')}},createElement(ProposalCard,{proposal:p.proposals[0],paused:false,connected:true,onAction(){},onPreview(){}})))
+  await waitFor(()=>assert.ok(view.getByText('Sin conexión')))
+  const preview=view.getByRole('button',{name:'Ampliar Luxury, versión 1'})
+  assert.equal(preview.querySelectorAll('button').length,0)
+})

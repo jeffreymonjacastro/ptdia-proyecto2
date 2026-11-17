@@ -1,10 +1,8 @@
 # PTDIA · Proyecto 2
 
-Asistente de exploración de estilos para dormitorios, con selección humano–IA, regeneración individual y un historial de decisiones. El alcance vigente está en [plan3](blueprint/plan/plan3.md) y la referencia visual en [el mockup](blueprint/design/chat-dormitorios-v1.png).
+**Estudio** permite explorar cinco estilos de dormitorios, aceptar o rechazar versiones con motivos y recuperar un resumen fiel de decisiones. La rama `feat/frontend-dormitorios` incorpora el backend de `bedroom-backend` y el frontend adaptado a su API de sesiones.
 
-## Frontend de demostración
-
-Implementado en [`frontend/`](frontend/README.md) con **React + TypeScript + Vite + Tailwind CSS**. Funciona sin backend: cinco estilos de ejemplo, carga de foto, decisiones versionadas, regeneración simulada, pausa, historial local y resumen de demostración.
+## Arranque del frontend
 
 Requiere Node.js 22.18 o posterior:
 
@@ -14,28 +12,19 @@ npm ci
 npm run dev
 ```
 
-Vite imprime la URL local, normalmente `http://127.0.0.1:5173`.
+Abre `http://localhost:5173`. Configura `frontend/.env.local` siguiendo [la guía del frontend](frontend/README.md): URL base ngrok sin `/docs`, URL Supabase y publishable key. El archivo local no se versiona y ngrok puede quedar como placeholder mientras se prepara la conexión. `VITE_APP_MODE=demo` mantiene el recorrido de ejemplo sin backend.
 
 ```bash
 npm test
 npm run build
 ```
 
-Las imágenes son ilustrativas y las regeneraciones reutilizan el ejemplo de cada estilo. Las fotos y decisiones se guardan en IndexedDB de este navegador, sin envíos a servicios externos. El perfil es demostrativo y no ofrece autenticación privada. La [guía del frontend](frontend/README.md) explica el recorrido, las verificaciones y los puntos de integración.
+## Backend, contexto y referencias
 
-## Contexto para continuar con otro agente
+- [Contrato frontend/API](backend/FRONTEND.md): autenticación Supabase, JSON, imágenes privadas, jobs e historial.
+- [Operación backend](backend/README.md): PostgreSQL, Supabase, Kaggle, pruebas y verificación de despliegue.
+- [Contexto para agentes](CONTEXTO_PROYECTO.md): decisiones del usuario, implementación, límites y verificación necesaria.
+- [Plan vigente](blueprint/plan/plan3.md) y [mockup](blueprint/design/chat-dormitorios-v1.png).
+- [`poc/kaggle_back/`](poc/kaggle_back/README.md) y [`poc/khipu_front/`](poc/khipu_front/README.md): prototipos anteriores con contratos distintos; no son la API de sesiones conectada.
 
-Leer [CONTEXTO_PROYECTO.md](CONTEXTO_PROYECTO.md): reúne el flujo aprobado, las decisiones recientes, los puntos de conexión del frontend y el contrato real de `origin/bedroom-backend`, existente pero aún no incorporado en esta rama. Incluye las diferencias de autenticación, trabajos asíncronos, imágenes privadas y metadatos que deben resolverse al integrar.
-
-## Backend
-
-- [Contrato de integración del frontend](backend/FRONTEND.md): acceso Supabase, JSON, imágenes privadas y polling.
-- [Guía de operación del backend](backend/README.md): pruebas, configuración Supabase/Kaggle y verificación.
-
-## Referencias y trabajo pendiente
-
-- [`blueprint/plan/plan3.md`](blueprint/plan/plan3.md): plan vigente de dormitorios, catálogo, API propuesta y reparto.
-- [`poc/kaggle_back/`](poc/kaggle_back/README.md): prueba de concepto de inferencia; no equivale al backend completo de sesiones e historial.
-- [`poc/khipu_front/`](poc/khipu_front/README.md): chat de prueba anterior, independiente del nuevo frontend.
-
-El backend de sesiones se incorporó desde `bedroom-backend`. La adaptación del frontend al contrato remoto está en desarrollo; consultar las guías anteriores para configuración y operación. Las pruebas locales de la demo no acreditan generación real ni una integración con backend.
+Las comprobaciones locales de integración usan datos/inferencia controlados. La disponibilidad de un servidor real, las cuentas de prueba y la URL actual del túnel se verifican por separado; no basta con compilar el frontend para acreditar una demo GPU en vivo.

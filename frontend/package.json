@@ -7,12 +7,13 @@
     "node": ">=22.18.0"
   },
   "scripts": {
-    "dev": "vite --host 127.0.0.1",
+    "dev": "vite --host localhost --port 5173 --strictPort",
     "build": "tsc --noEmit && vite build",
-    "preview": "vite preview --host 127.0.0.1",
-    "test": "node --import tsx --test --test-isolation=none src/*.test.ts src/*.test.tsx"
+    "preview": "vite preview --host localhost",
+    "test": "node --import tsx --test src/*.test.ts src/*.test.tsx"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.119.0",
     "react": "19.3.1",
     "react-dom": "19.3.1"
   },

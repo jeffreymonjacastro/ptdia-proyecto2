@@ -1,65 +1,81 @@
 # Estudio · Frontend de dormitorios
 
-Implementación del **entregable 5 de [plan3](../blueprint/plan/plan3.md)** en React, TypeScript, Vite y Tailwind CSS, siguiendo el [mockup](../blueprint/design/chat-dormitorios-v1.png). Funciona completamente con datos simulados: no necesita FastAPI, Kaggle, ngrok, credenciales ni conexión a servicios de IA.
+React + TypeScript + Vite + Tailwind CSS. Conserva el diseño de [plan3](../blueprint/plan/plan3.md) y el [mockup](../blueprint/design/chat-dormitorios-v1.png), con dos modos separados:
 
-## Ejecutar
+- **API:** Supabase Auth y la API completa de `backend/`, con trabajos asíncronos, cinco propuestas reales, fotos privadas, decisiones, regeneración e historial remoto.
+- **Demo:** datos de ejemplo e IndexedDB local, sin inferencia ni autenticación. No se suben automáticamente sus proyectos o fotos al activar API.
 
-Node.js **22.18 o posterior**.
+## Ejecutar y configurar
+
+Node.js **22.18 o posterior**. Desde `frontend/`:
 
 ```bash
-cd frontend
 npm ci
 npm run dev
 ```
 
-Abre la dirección que imprime Vite (normalmente `http://127.0.0.1:5173`).
+El servidor abre en **`http://localhost:5173`**, con puerto fijo para coincidir con el origen permitido por la plantilla Kaggle. Si está ocupado, Vite lo informa en lugar de cambiar de puerto. `npm run preview` usa otro puerto: autorizar su origen exacto en `BEDROOM_ORIGINS` si se usa contra el backend.
+
+Crear `.env.local` a partir de [`.env.example`](.env.example) **solo si no existe**, sin reemplazar valores personales. El archivo local está excluido de Git.
+
+```dotenv
+VITE_APP_MODE=api
+VITE_API_BASE_URL=https://TU-BACKEND.ngrok-free.app
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+```
+
+Completar URL del proyecto y publishable key de Supabase. El dominio ngrok es la URL base, sin `/docs`; las rutas `/api/` se añaden en el cliente. **Mientras `TU-BACKEND` siga como placeholder, se puede preparar el acceso Supabase, pero no se hacen llamadas al backend ficticio.** La vista informa que falta activar la conexión.
+
+Usar únicamente configuración pública en `VITE_*`: nunca claves `sb_secret_*`, claves `service_role`, contraseñas PostgreSQL ni tokens Kaggle/ngrok. Vite comprueba las claves secretas reconocibles antes de empaquetar. La sesión del usuario se gestiona con el SDK oficial en `sessionStorage`; no se ponen bearer tokens en `.env.local`.
+
+Para usar solo la demo, definir `VITE_APP_MODE=demo`. Sin configuración alguna también se abre la demo, identificada como tal. Un modo API parcialmente configurado muestra el estado de configuración pendiente y no se convierte silenciosamente en demo. Guardar los cambios de entorno; reiniciar Vite si fuera necesario.
+
+## Contrato que usa el frontend
+
+La fuente está en [`backend/FRONTEND.md`](../backend/FRONTEND.md), [`api.py`](../backend/src/bedroom_backend/api.py) y el `/openapi.json` del servidor. El JSON de la PoC con `image_base64`, `image_mime_type` y `description` **no es el contrato de sesiones conectado**.
+
+- `POST /api/generations`: `FormData` con foto, `consent=true` y preferencias opcionales; respuesta `202 {session_id,job_id}`.
+- `GET /api/jobs/{job_id}`: polling mientras `queued/running`, seguido de recuperación del detalle de sesión. No se espera a la GPU dentro de la petición de creación.
+- `GET /api/generations/{id}`: cinco `variations`, sus versiones, `current_version_id`, descripciones, jobs y resumen.
+- `PUT /api/generations/{id}/decisions/{version_id}`: `{decision,reason?}`. La UI pide y valida un motivo obligatorio al rechazar; confirmar inicia solo la regeneración de esa posición. Cancelar no registra nada.
+- Rutas de reintento inicial/por estilo, `confirm-bedroom`, resumen, pausa e historial/borrado, según la guía backend.
+
+El cliente envía el bearer vigente y `ngrok-skip-browser-warning: true`, incluidas las descargas de imágenes. Renueva una vez el token ante `401`. Todos los POST/PUT llevan `Idempotency-Key`; se conserva al repetir una escritura de resultado desconocido por fallo de red o respuesta incompleta. Una acción confirmada nueva obtiene otra clave. Multipart no fija manualmente el boundary.
+
+Las imágenes se descargan como Blob autenticado y se muestran mediante object URLs que se revocan al sustituirse o desmontarse. El cliente rechaza rutas de otro origen antes de enviar credenciales. El modo conectado no guarda fotos, decisiones ni resúmenes en el IndexedDB de demo.
+
+## Comportamiento y límites actuales
+
+- JPEG/PNG/WebP, hasta 10 MiB y 25 MP, con validación de cabecera y decodificación del navegador; el backend vuelve a validar e impone imágenes estáticas.
+- Al cambiar foto se restablecen confirmación de dormitorio y consentimiento. El formulario conectado no usa automáticamente la foto del mockup.
+- Se conservan los IDs del servidor y las semillas como string. La versión vigente se busca por `current_version_id`; `decision: null` significa pendiente. Un lote parcial no se muestra como cinco propuestas listas.
+- Los estados iniciales `generating`, `needs_confirmation`, `rejected` y `failed` tienen pantallas de espera, confirmación de dormitorio, nueva foto o reintento. Los jobs siguen en el backend aunque se cierre la página; al volver se recuperan.
+- Cinco versiones actuales aceptadas habilitan el resumen. Se muestra el texto de **`session.summary.summary`** solo para la revisión vigente. El cálculo de resumen de la demo no se ejecuta sobre datos remotos.
+- Pausar/reanudar se envía mediante PATCH. El control queda deshabilitado durante jobs activos porque el backend no ofrece cancelación de inferencia.
+- **Nombres de cliente/espacio:** la API actual no tiene esos campos; se recuerdan como etiquetas locales separadas por cuenta. En otro navegador se muestran sesiones identificadas por fecha/ID. No se confunden con el propietario autenticado.
+- **Preferencias del chat:** la API recibe preferencias al crear y el motivo de rechazo al regenerar; no tiene endpoint de chat/edición posterior. La barra conectada indica cómo ajustar por rechazo, sin prometer que un mensaje cambie el prompt remoto.
+- El usuario inicia sesión con una cuenta precreada por el equipo; no se inventan rutas `/api/auth/*` ni registro público.
+- La UI obliga a indicar motivo de rechazo; el esquema del backend fusionado conserva `reason` opcional para otros clientes. No se modifica ese contrato como efecto secundario de esta integración.
+
+## Código y pruebas
+
+| Archivo | Responsabilidad |
+| --- | --- |
+| `src/ConnectedApp.tsx`, `src/AuthStudio.tsx`, `src/config.ts` | Selección de modo, configuración pública, acceso y limpieza de cuenta. |
+| `src/api.ts` | Transporte, JSON de errores, renovación de bearer, multipart e idempotencia. |
+| `src/remote.ts` | Tipos, validación JSON y adaptación al modelo de presentación. |
+| `src/useRemoteWorkspace.ts` | Sesiones, selección, escrituras, polling y recuperación. |
+| `src/PrivateImage.tsx` | Imágenes autenticadas y ciclo de vida de object URLs. |
+| `src/App.tsx`, `ProjectForm.tsx`, `ProposalCard.tsx`, `History.tsx` | Interfaz compartida entre modos, con controles conectados. |
+| `src/domain.ts`, `storage.ts`, `useWorkspace.ts` | Reglas de la demo y persistencia local; desactivada en modo API. |
 
 ```bash
-npm test       # 29 pruebas de dominio, componentes, archivos y persistencia
-npm run build  # comprobación estricta de TypeScript y build de producción
+npm test
+npm run build
 npm run preview
 ```
 
-Después de instalar las dependencias, el recorrido funciona sin Internet. Los recursos visuales y las fuentes del sistema son locales.
+La suite usa Node/tsx con procesos separados por archivo, Testing Library, Happy DOM y `fake-indexeddb`. Verifica transporte HTTP con respuestas controladas, JSON real de sesiones, estado del controlador, motivos, consentimiento y recuperación. `src/fixtures/session.json` se contrastó con el modelo `SessionDetail` real del backend. Los tests de API/controlador no demuestran inferencia GPU ni disponibilidad del túnel.
 
-## Recorrido disponible
-
-1. Seleccionar un cliente de ejemplo, buscarlo o crear un proyecto con un nombre propio.
-2. Usar el dormitorio de ejemplo o subir una foto JPG/PNG/WebP, hasta 10 MiB y 25 megapíxeles. Se comprueban formato declarado, cabecera y decodificación; un archivo renombrado no basta. Confirmar que muestra un dormitorio y autorizar el guardado local.
-3. Comparar **Luxury, Japanese, Neo Classic, Attic y Cyberpunk**, ampliar imágenes y ver la fotografía original. Cada propuesta tiene posición, versión y estado visible. Las cinco empiezan pendientes.
-4. Aceptar con un motivo opcional o pulsar **Rechazar** para abrir una ventana que exige el motivo del rechazo. Cancelar conserva la propuesta. Solo al confirmar **Rechazar y regenerar** con un motivo no vacío se registra la decisión y se crea, tras una breve espera simulada, una nueva versión pendiente de ese estilo. Las otras cuatro mantienen su estado. La nueva versión reutiliza la misma imagen ilustrativa.
-5. Escribir preferencias en el chat. Se conservan como texto para las próximas versiones, sin alterar propuestas ya aceptadas. La respuesta del asistente es fija y está identificada como demostración.
-6. Pausar/reanudar la revisión. Abrir el historial con decisiones, motivos, IDs completos y versiones anteriores.
-7. Aceptar las cinco versiones actuales para habilitar el resumen final. Se calcula desde las decisiones, incluye rechazos históricos, no inventa motivos y se invalida al modificar una decisión o versión. Puede copiarse al portapapeles.
-8. Recargar para recuperar proyectos, fotos, decisiones y resumen. Eliminar un proyecto borra su registro y la foto del almacenamiento de la demo. Cambiar el nombre del perfil es una personalización local.
-
-## Datos locales y límites de la demo
-
-- IndexedDB guarda una instantánea del espacio y los archivos de fotos como `Blob`, sin Base64 ni envíos al servidor. Usa un solo perfil/pestaña durante la demostración; no hay sincronización entre dispositivos o pestañas.
-- Si el navegador no permite guardar, los datos son incompatibles o falta espacio, aparece un aviso. Se mantiene la vista en memoria y se ofrece reintento; los registros incompatibles no se sobrescriben automáticamente.
-- El acceso es ilustrativo: **no hay autenticación ni aislamiento privado entre usuarios del mismo perfil del navegador**. No introduzcas contraseñas. Usa fotografías de prueba autorizadas.
-- La demo no clasifica habitaciones: solicita confirmación explícita. La detección real de dormitorios corresponde al backend.
-- Las cinco imágenes se muestran mediante ventanas SVG del raster de referencia en `public/demo/bedrooms.png`. Son ejemplos ilustrativos del mockup, sin inferencia SDXL ni adaptadores LoRA. La foto cargada no cambia esas imágenes. Las regeneraciones no evalúan calidad visual ni conservación espacial.
-- El temporizador de regeneración solo avanza mientras se visualiza ese proyecto. Cambiar de cliente o pausar suspende la simulación; volver o reanudar la inicia de nuevo. La demo no ejecuta inferencia en segundo plano.
-- El resumen es determinista y está rotulado como demostración. No llama a Qwen ni demuestra fidelidad de un LLM real.
-- Vite sirve archivos estáticos. No hay endpoints `/api`, proxy a túneles antiguos, claves, cuentas remotas, publicación ni backend incorporado en esta rama.
-
-## Organización e integración pendiente
-
-- `src/domain.ts`: contratos locales de proyectos, catálogo, versiones, decisiones y resumen. `updateProject` conserva el historial y descarta acciones con IDs obsoletos o duplicados.
-- `src/ProposalCard.tsx`: estados y controles por propuesta; aquí se sustituirá el temporizador de regeneración por el servicio real.
-- `src/ProjectForm.tsx`, `src/photos.ts`: carga, validación, confirmaciones y creación de sesión.
-- `src/storage.ts`, `src/useWorkspace.ts`: persistencia local y avisos de guardado.
-- `src/App.tsx`, `src/components.tsx`, `src/History.tsx`: chat, clientes, galería, diálogos e historial.
-
-El backend ya está disponible en `origin/bedroom-backend`, pero no está integrado en esta rama. Antes de conectar, leer [CONTEXTO_PROYECTO.md](../CONTEXTO_PROYECTO.md) y `backend/FRONTEND.md` de esa rama: documentan autenticación Supabase, trabajos asíncronos y diferencias con el plan. Para integrar, sustituir la creación local por `POST /api/generations`, las decisiones por `PUT /api/generations/{id}/decisions/{version_id}`, los reintentos por `POST /api/generations/{id}/variations/{position}/retry`, y el resumen por `POST /api/generations/{id}/summary`. Usar las rutas de historial/borrado y la autenticación Supabase del contrato real de `backend/FRONTEND.md`. Contrastar los esquemas publicados y mapear los IDs/versiones del servidor; los IDs de esta demo no constituyen un contrato cerrado de API.
-
-Las pruebas con API real, fallos de túnel, cuentas privadas y persistencia externa del plan permanecen pendientes. La PoC de `poc/khipu_front` y el notebook existente se conservan como referencias independientes.
-
-## Verificación de esta entrega
-
-`npm test`: **29/29**. Incluye las 32 combinaciones de cinco decisiones, idempotencia, versiones obsoletas, regeneración y reintento, rechazo con motivo obligatorio, cancelación, cambio de motivos, consentimiento por fotografía, recuperación con cambios concurrentes, almacenamiento inválido, reconstrucción del resumen y fechas ilegibles. Las pruebas de componentes utilizan Testing Library y Happy DOM; solo se sustituye la decodificación de imagen que ese DOM no implementa. IndexedDB se prueba con `fake-indexeddb`.
-
-`npm run build`: comprobación estricta de TypeScript y empaquetado de producción correctos. Recorrido manual en navegador: carga válida e inválida, cinco estilos, rechazo de Attic y nueva versión pendiente conservando aceptadas, recarga con foto e historial, resumen con cinco aceptaciones y su invalidación, envío de preferencias, pausa y navegación móvil a 390 × 844.
-
-Una revisión independiente detectó problemas con motivos reutilizados, confirmaciones heredadas, resúmenes recuperados sin contrastar, fechas corruptas y recuperación de guardado con estado obsoleto. Todos se reprodujeron mediante pruebas que fallaron antes del cambio y pasaron después. Se corrigió además el bloqueo del formulario tras un nombre compuesto por espacios. Se difiere únicamente el avance de regeneraciones simuladas en proyectos que no están abiertos, según el límite descrito arriba.
+La [guía backend](../backend/README.md) documenta las pruebas PostgreSQL, Kaggle, Supabase y el verificador autenticado con dos cuentas. Confirmar CORS para el origen exacto antes de las pruebas de navegador. Consultar [CONTEXTO_PROYECTO.md](../CONTEXTO_PROYECTO.md) para el estado de la rama y los siguientes pasos.

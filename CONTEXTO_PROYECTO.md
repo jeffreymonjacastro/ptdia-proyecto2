@@ -1,244 +1,183 @@
 # Contexto de PTDIA Proyecto 2 para agentes
 
-Actualizado el **17 de noviembre de 2026**, hora de Lima. Este documento permite continuar el trabajo sin el historial del chat. Describe el código revisado y distingue el frontend local, el backend existente en otra rama y las tareas de integración. No contiene credenciales ni supone que un túnel o una sesión de Kaggle sigan activos.
+Actualizado el **17 de noviembre de 2026**, hora de Lima. Esta guía permite continuar sin el historial del chat. Describe la integración implementada y separa las pruebas locales de la conexión externa pendiente. No contiene credenciales ni presupone que Kaggle/ngrok sigan activos.
 
 ## 1. Empezar aquí
 
 1. Leer [AGENTS.md](AGENTS.md) y comprobar `git status --short --branch` antes de modificar archivos.
-2. Leer este documento, [plan3](blueprint/plan/plan3.md), [la guía del frontend](frontend/README.md) y [el mockup aprobado](blueprint/design/chat-dormitorios-v1.png).
-3. Actualizar las referencias con `git fetch origin`. Consultar las ramas de backend y experimentos sin cambiar de checkout:
+2. Leer esta guía, [plan3](blueprint/plan/plan3.md), [frontend/README.md](frontend/README.md) y el [mockup aprobado](blueprint/design/chat-dormitorios-v1.png).
+3. Para la API usar [backend/FRONTEND.md](backend/FRONTEND.md), [api.py](backend/src/bedroom_backend/api.py), [service.py](backend/src/bedroom_backend/service.py) y el `/openapi.json` del servidor activo. **El contrato ejecutable prevalece sobre las rutas propuestas antiguas del plan.**
+4. Consultar [el plan de integración](blueprint/plan/integracion-frontend-backend.md) para el alcance y las verificaciones. No volver a implementar la conexión desde la PoC.
+5. Actualizar referencias con `git fetch origin` y revisar cambios posteriores sin sustituir el trabajo local ni volver a revisiones antiguas.
 
-   ```bash
-   git show origin/bedroom-backend:backend/FRONTEND.md
-   git show origin/bedroom-backend:backend/README.md
-   git show origin/fabryzzio/sdxl-lora-experiments:poc/lora_experiments/README.md
-   ```
-
-4. Para integrar, contrastar la guía del backend con `backend/src/bedroom_backend/api.py`, `service.py` y el `/openapi.json` del servidor activo. **El contrato ejecutable del backend prevalece sobre rutas propuestas antiguas del plan**, conservando los requisitos funcionales indicados abajo.
-5. No asumir que integrar consiste en cambiar una URL: hay autenticación, trabajos asíncronos, imágenes privadas y diferencias entre modelos de datos.
-
-## 2. Estado y ramas revisadas
+## 2. Rama y estado real
 
 Repositorio: `git@github.com:jeffreymonjacastro/ptdia-proyecto2.git`.
 
-| Rama / revisión observada | Contenido y uso |
+| Rama / revisión observada | Estado |
 | --- | --- |
-| `feat/frontend-dormitorios`, `d6aa5ec` | Rama actual de trabajo. Frontend completo de demostración, sin llamadas al backend. Los commits del frontend ya se enviaron a `origin`. |
-| `main` / `origin/main`, `56ffe3f` | Base de la rama del frontend: blueprint y PoC. No contiene el nuevo frontend ni el backend de sesiones en la revisión consultada. |
-| `origin/bedroom-backend`, `24374cf` | Backend FastAPI con PostgreSQL, Supabase Auth/Storage, trabajos persistentes y ejecución en Kaggle. Incluye una guía específica para frontend. **Existe, pero no está integrado en este checkout.** |
-| `origin/fabryzzio/sdxl-lora-experiments`, `78dd467` | Entrenamiento/evaluación de LoRA y Qwen, manifiestos y resultados. Trabajo experimental separado del despliegue del producto. |
+| `feat/frontend-dormitorios` | Rama de trabajo solicitada. Contiene frontend demo y conectado, más el backend fusionado. Conservar esta rama; no fusionar a `main` sin petición. |
+| Merge `d08b246` | Incorpora `origin/bedroom-backend` (`24374cf`) a frontend. El conflicto de README se resolvió conservando las guías de ambos módulos. |
+| `origin/bedroom-backend`, `24374cf` | FastAPI, PostgreSQL, Supabase Auth/Storage, worker y modelos Kaggle; ya está incorporado en este checkout. |
+| `main` observado en `56ffe3f` | Base histórica del blueprint y PoC. No asumir que contiene esta integración. |
+| `origin/fabryzzio/sdxl-lora-experiments`, `78dd467` | Experimentos de LoRA/Qwen separados; no se han fusionado como parte de la conexión. |
 
-Los hashes son una fotografía del estado revisado, no una instrucción para volver a revisiones antiguas. Consultar cambios posteriores antes de implementar. La base común observada entre frontend y backend es `56ffe3f`; no hacer merge ni sustituir archivos automáticamente al leer esta guía.
+Historial anterior: `7c46eea` implementó la demo, `805a83a` corrigió persistencia/consentimiento/resumen, `d6aa5ec` hizo obligatorio el motivo de rechazo, `bde40dd` añadió el contexto para agentes. Consultar `git log` para los commits posteriores de integración.
 
-Historial relevante del frontend:
+**Decisión explícita del usuario:** usar la API completa de `bedroom-backend`: crear sesión, seguir jobs y recuperar las cinco propuestas. El JSON pegado con `image_base64`, `image_mime_type` y `description`, y el archivo `poc/kaggle_back/response.json`, son referencias de la PoC de una imagen; no son el contrato conectado.
 
-- `7c46eea`: primera demo funcional siguiendo el mockup.
-- `805a83a`: correcciones de motivos, consentimiento por foto, resumen recuperado y persistencia.
-- `d6aa5ec`: al rechazar, pedir **motivo obligatorio** y confirmación antes de regenerar.
+## 3. Producto y decisiones que conservar
 
-## 3. Producto y decisiones que deben conservarse
+La aplicación **Estudio** ayuda a un diseñador a explorar dormitorios con su cliente. Interfaz oscura con proyectos en el lateral, original como adjunto, cinco tarjetas (tres arriba y dos abajo en escritorio), historial y adaptación móvil.
 
-La aplicación **Estudio** ayuda a un diseñador de interiores a explorar opciones con su cliente. La interfaz es un chat oscuro, con proyectos por cliente en el lateral, foto original como adjunto, galería de tres tarjetas arriba y dos abajo en escritorio, historial y compositor inferior. En móvil se adapta a una columna y un menú lateral.
+- Alcance exclusivo de **habitaciones / dormitorios**.
+- Lote completo de exactamente cinco posiciones: `1 luxury` (Luxury), `2 japanese` (Japanese), `3 neo-classic` (Neo Classic), `4 attic` (Attic), `5 cyberpunk` (Cyberpunk).
+- Toda versión nueva empieza pendiente. `decision: null` no es rechazo.
+- **Rechazar abre diálogo y exige motivo no vacío**, máximo 500 caracteres en la UI. Cancelar/cerrar no registra nada. Confirmar guarda el motivo sobre esa versión y regenera solo su estilo, conservando las otras cuatro propuestas y decisiones.
+- Al aceptar el motivo es opcional; no reutilizar un motivo de aceptación como rechazo.
+- Conservar original, versiones y decisiones. El backend regenera desde el original con preferencias y feedback; no encadenar por defecto la imagen sintética anterior.
+- El resumen requiere cinco versiones actuales aceptadas. Cambiar una decisión/versión invalida la vista anterior. Mostrar texto y registro reales, incluidos rechazos históricos, sin atribuir preferencias inexistentes.
+- No presentar un lote parcial como completo ni aplicar respuestas obsoletas sobre versiones nuevas.
+- Cambiar foto exige de nuevo confirmación de dormitorio y autorización; no heredar consentimiento, decisiones ni resumen.
+- Conservar el mockup y controles accesibles; distinguir inferencia de simulación. La decoración generada no es un plano constructivo ni garantía de conservación espacial.
 
-- Solo se admiten **habitaciones / dormitorios**. No ampliar silenciosamente a salas, cocinas u otros espacios.
-- Cada lote inicial completo tiene **exactamente cinco** estilos y posiciones:
+Planes 1/2 son antecedentes de flores/personas, no el alcance vigente. El motivo obligatorio es una solicitud posterior al mockup.
 
-  | Posición | ID | Etiqueta |
-  | --- | --- | --- |
-  | 1 | `luxury` | Luxury |
-  | 2 | `japanese` | Japanese |
-  | 3 | `neo-classic` | Neo Classic |
-  | 4 | `attic` | Attic |
-  | 5 | `cyberpunk` | Cyberpunk |
+## 4. Ejecutar y configurar
 
-- Las nuevas versiones empiezan pendientes. Pendiente no equivale a rechazada.
-- **Rechazar abre una ventana y exige un motivo no vacío.** Cancelar o cerrar no registra decisión ni inicia regeneración. Confirmar guarda el motivo sobre esa versión y regenera únicamente su estilo, conservando las otras cuatro propuestas y sus decisiones.
-- Al aceptar, el motivo es opcional. Un motivo de aceptación anterior nunca se reutiliza como motivo de rechazo.
-- Conservar el original, las versiones y el historial. Regenerar desde el original con preferencias y feedback; no encadenar la imagen sintética anterior como entrada por defecto.
-- Habilitar resumen final solo con cinco versiones actuales aceptadas. Cambiar una decisión o una versión invalida el resumen anterior. El resumen debe reflejar IDs, decisiones y motivos realmente registrados, incluidos rechazos históricos.
-- Un lote parcial no se presenta como completo. Una respuesta obsoleta no debe reemplazar una versión vigente.
-- Al cambiar la foto, exigir de nuevo confirmación de dormitorio y autorización. No heredar decisiones, resumen ni consentimiento de otra entrada.
-- Conservar el diseño y los controles accesibles existentes. No presentar simulaciones como inferencia real ni la decoración generada como plano o garantía de conservación espacial.
-
-Estas decisiones vienen del plan y de las solicitudes aceptadas del usuario; el motivo obligatorio al rechazar es una modificación explícita posterior al mockup. Los planes 1 y 2 son antecedentes de flores/personas, **no el alcance vigente**.
-
-## 4. Frontend que existe hoy
-
-Carpeta principal: [`frontend/`](frontend/README.md). React 19.3.1, TypeScript 7.0.2, Vite 8.3.8 y Tailwind CSS 4.3.5; dependencias fijadas en `package-lock.json`. Node.js **22.18 o posterior**.
-
-Desde la raíz del repositorio:
+Frontend: React, TypeScript, Vite y Tailwind; versiones fijadas en `frontend/package-lock.json`. Node.js **22.18 o posterior**.
 
 ```bash
 cd frontend
 npm ci
 npm run dev
-# En otra terminal, dentro de frontend:
+# En otra terminal dentro de frontend:
 npm test
 npm run build
 ```
 
-Vite usa `127.0.0.1`, normalmente puerto `5173`. No hay proxy, cliente HTTP de backend, variables de entorno de API ni cliente Supabase implementados. La demo no necesita Internet una vez instaladas las dependencias.
+El origen de desarrollo es **`http://localhost:5173`**, puerto fijo (`strictPort`), coincidente con la plantilla Kaggle. `127.0.0.1`, otros puertos y `preview` son otros orígenes; deben permitirse explícitamente mediante `BEDROOM_ORIGINS` en backend.
 
-| Archivo | Responsabilidad / lugar de conexión |
+El usuario pidió **`frontend/.env.local`** para introducir sus valores de Supabase; se creó y abrió con ngrok como placeholder. Está ignorado por Git. **No sobrescribirlo ni imprimir sus valores.** La plantilla pública es [frontend/.env.example](frontend/.env.example):
+
+```dotenv
+VITE_APP_MODE=api
+VITE_API_BASE_URL=https://TU-BACKEND.ngrok-free.app
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+```
+
+La URL base es el **dominio ngrok sin `/docs`**. El cliente añade `/api/...`. Mientras siga `TU-BACKEND`, no hace llamadas al dominio ficticio y muestra conexión pendiente tras el acceso. Completar URL/publishable key públicas y dominio real cuando estén disponibles; reiniciar Vite si hace falta.
+
+Los `VITE_*` se publican al navegador. Nunca incluir `sb_secret_*`, JWT `service_role`, contraseñas PostgreSQL, `HF_TOKEN`, `NGROK_TOKEN`, claves de servidor ni bearer tokens. La configuración rechaza claves secretas reconocibles, también antes del build. No registrar ni subir fotos o credenciales a Git.
+
+**Modos:** `VITE_APP_MODE=demo` abre la demostración; sin configuración también abre demo, identificada. API parcialmente configurada muestra configuración pendiente y no cae silenciosamente a demo. No migrar/subir proyectos o fotos de demo automáticamente.
+
+## 5. Código conectado y demo
+
+| Archivo | Responsabilidad |
 | --- | --- |
-| [`frontend/src/App.tsx`](frontend/src/App.tsx) | Proyectos/clientes, selección activa, `onAction`, alta/borrado local, chat, pausa, resumen y galería. `Workbench` contiene el recorrido de revisión. |
-| [`frontend/src/ProjectForm.tsx`](frontend/src/ProjectForm.tsx) | Foto, cliente, nombre del espacio, preferencias y confirmaciones. Hoy llama `createProject` y espera 900 ms antes de añadirlo. Sustituir por el alta remota asíncrona. |
-| [`frontend/src/ProposalCard.tsx`](frontend/src/ProposalCard.tsx) | Aceptar, pedir motivo de rechazo, confirmar, progreso y reintento por tarjeta. El temporizador de 1600 ms simula la nueva versión: no dejarlo activo en modo API. |
-| [`frontend/src/domain.ts`](frontend/src/domain.ts) | Tipos locales, cinco estilos, `createProject`, `updateProject`, `currentVersion`, `canSummarize` y `buildSummary`. |
-| [`frontend/src/photos.ts`](frontend/src/photos.ts) | JPEG/PNG/WebP, máximo 10 MiB y 25 MP, cabecera real y decodificación con `createImageBitmap`. El backend debe volver a validar. |
-| [`frontend/src/storage.ts`](frontend/src/storage.ts) | IndexedDB y validación de la instantánea local. Reconstruye el resumen de demo desde las decisiones al recuperar. |
-| [`frontend/src/useWorkspace.ts`](frontend/src/useWorkspace.ts) | Carga/guardado, avisos y recuperación sin descartar cambios recientes. |
-| [`frontend/src/components.tsx`](frontend/src/components.tsx) | Diálogos nativos, imágenes de ejemplo, foto original mediante Blob/object URL e iconos. |
-| [`frontend/src/History.tsx`](frontend/src/History.tsx) | Historial de decisiones y versiones. Tolera fechas ilegibles. |
-| [`frontend/src/style.css`](frontend/src/style.css) | Diseño aprobado, estados y adaptación móvil. |
+| `frontend/src/ConnectedApp.tsx`, `config.ts` | Selección de modo y validación de configuración pública. |
+| `frontend/src/AuthStudio.tsx` | SDK Supabase, acceso con cuenta precreada, sesión en `sessionStorage`, renovación y separación por propietario. Salir desmonta el workspace y sus imágenes. |
+| `frontend/src/api.ts` | Bearer vigente por petición, un refresco ante 401, cabecera ngrok, multipart, errores HTTP y claves de idempotencia. Transporte configurable para pruebas. |
+| `frontend/src/remote.ts` | DTO, validación JSON y adaptación a presentación: IDs opacos, seeds string, puntero actual, jobs, historial y resumen vigente. |
+| `frontend/src/useRemoteWorkspace.ts` | Listado/detalle, selección, acciones remotas, polling, recuperación y etiquetas locales por cuenta. Sin IndexedDB de demo. |
+| `frontend/src/PrivateImage.tsx` | Descarga Blob autenticada, abort, object URLs y revocación al sustituir/desmontar. |
+| `frontend/src/App.tsx` | Shell compartido, estados remotos iniciales, controles de job, pausa, historial y resumen del servidor. |
+| `frontend/src/ProjectForm.tsx` | Foto real, preferencias, confirmaciones actuales y creación remota asíncrona; errores sin perder los campos. |
+| `frontend/src/ProposalCard.tsx` | Decisiones y motivo obligatorio; estados reales en API. Temporizador de demo desactivado en conectado. |
+| `frontend/src/History.tsx`, `components.tsx` | Historial compartido, diálogos, imágenes y controles accesibles. |
+| `frontend/src/photos.ts` | JPEG/PNG/WebP, 10 MiB y 25 MP; cabecera y decodificación del navegador. El servidor vuelve a validar y rechaza animación. |
+| `frontend/src/domain.ts`, `storage.ts`, `useWorkspace.ts` | Reglas y persistencia de demo. El modo API no ejecuta su resumen determinista ni guarda sesiones privadas aquí. |
 
-### Qué está simulado
+La demo conserva cinco clientes e imágenes SVG recortadas del mockup, temporizadores, chat con respuesta fija, resumen determinista y perfil local «Mariana». IndexedDB `ptdia-bedroom-demo`, versión 1, guarda `workspace/current`. No es autenticación ni sincronización multiusuario.
 
-- Cinco clientes iniciales y las imágenes/descripciones del mockup. `RoomImage` muestra ventanas SVG de `public/demo/bedrooms.png`; **no genera fotos**.
-- Una nueva versión reutiliza la imagen del mismo estilo. El temporizador solo avanza mientras ese proyecto está abierto y no pausado.
-- El chat guarda mensajes y sustituye `project.preferences` por el último texto enviado; la respuesta del asistente es fija.
-- `buildSummary` construye un resumen determinista, sin Qwen.
-- El perfil «Mariana» es un nombre editable, no una cuenta ni una identidad autenticada.
-- IndexedDB (`ptdia-bedroom-demo`, versión 1; store `workspace`, clave `current`) guarda `{schema: 1, projects, activeId, designer}`, incluidas fotos como `Blob`. No es almacenamiento privado multiusuario ni sincronización entre pestañas.
+## 6. Contrato remoto vigente
 
-No migrar ni subir automáticamente las fotos/proyectos locales a una cuenta real. Si se conserva la demo, separarla explícitamente del modo conectado y limpiar vistas, cachés privadas y object URLs al cerrar sesión o cambiar de usuario.
+Todas las rutas siguientes requieren bearer; las imágenes también. Se añade `ngrok-skip-browser-warning: true`. Supabase Auth usa cuentas precreadas con `signInWithPassword`; **no existen** `/api/auth/login`, `/register` o `/logout` propios.
 
-## 5. Backend disponible: usar esta implementación, no reinventarla
-
-Guías de la rama: [contrato para frontend](https://github.com/jeffreymonjacastro/ptdia-proyecto2/blob/bedroom-backend/backend/FRONTEND.md) y [operación del backend](https://github.com/jeffreymonjacastro/ptdia-proyecto2/blob/bedroom-backend/backend/README.md). Si aún no se ha incorporado esa rama, leerlas con `git show` como se indica al inicio.
-
-Su estructura es `backend/src/bedroom_backend/`, no la organización inicialmente propuesta `backend/app/`:
-
-- `api.py`: rutas FastAPI, modelos de entrada/salida, CORS, autenticación y límites.
-- `service.py`: sesiones, decisiones versionadas, idempotencia y referencias a trabajos.
-- `worker.py` / `repository.py`: cola de trabajos y persistencia PostgreSQL; recuperación y publicación de versiones.
-- `supabase.py`: validación de identidad y acceso servidor al bucket privado.
-- `runtime.py` / `models.py`: arranque, SDXL y `Qwen/Qwen3.5-4B` en dos T4.
-- `styles.json` / `catalog.py`: catálogo activo, hashes, revisiones, activadores y parámetros de las cinco LoRA.
-- `summary.py`: Qwen selecciona extractos verificables de descripciones; el servidor construye el texto español con decisiones y motivos del registro. No sustituirlo por el resumen de demo del navegador.
-- `migrations/001_bedroom.sql`, `tests/`, `kaggle/build_bundle.py` y `kaggle/verify_demo.py`: esquema, pruebas, empaquetado y verificación de despliegue.
-
-El README de esa rama **reporta** una prueba GPU de cinco estilos/regeneración/resumen, un recorrido autenticado con Supabase/ngrok, recuperación tras reiniciar Kaggle y aislamiento con dos cuentas. Esta guía revisó el código y esos reportes; no volvió a ejecutar GPU, infraestructura o comprobaciones remotas. Confirmar disponibilidad actual antes de depender de ellos.
-
-### Conexión y autenticación
-
-Solicitar al responsable del backend: **origen ngrok actual**, **URL de Supabase**, **publishable key** y dos cuentas de prueba distintas, con contraseñas compartidas por un canal privado. No guardar aquí credenciales, tokens o URLs temporales como configuración permanente.
-
-- Iniciar sesión mediante Supabase Auth con las cuentas precreadas. La demo del backend tiene deshabilitado el registro público. No implementar `/api/auth/register`, `/api/auth/login` o `/api/auth/logout` basándose en el plan: **esas rutas no existen en la implementación revisada**.
-- En cada llamada `/api/`, enviar el `access_token` vigente como `Authorization: Bearer <token>`, también al descargar imágenes. Leer la sesión actual para respetar la renovación del token.
-- Enviar `ngrok-skip-browser-warning: true` a la API ngrok.
-- `GET /health` devuelve `200 {"status":"ready"}` cuando los servicios están listos; puede responder `503`. `/docs` y `/openapi.json` permiten comprobar el contrato actual.
-- La plantilla Kaggle permite por defecto `http://localhost:5173`. **Nuestro frontend abre en `http://127.0.0.1:5173`: son orígenes distintos.** Añadir el origen exacto a `BEDROOM_ORIGINS` y reiniciar la API, o usar un origen coherente. También importa el puerto y el esquema HTTP/HTTPS.
-- Como nombres de configuración del frontend se pueden usar `VITE_API_BASE_URL`, `VITE_SUPABASE_URL` y `VITE_SUPABASE_PUBLISHABLE_KEY`; son una propuesta, no variables ya implementadas. Los valores `VITE_*` se exponen al navegador. Nunca poner allí claves secretas de servidor, contraseñas de PostgreSQL, `HF_TOKEN` o `NGROK_TOKEN`.
-
-### Rutas reales revisadas
-
-Todas las rutas de la tabla tienen prefijo `/api`. `{id}` es la sesión, `{version_id}` una versión inmutable y `{position}` un entero de 1 a 5.
-
-| Método y ruta | Entrada / respuesta / acción del frontend |
+| Método y ruta | Uso |
 | --- | --- |
-| `POST /generations` | Multipart `image`, `consent=true`, `preferences` opcional (hasta 2000 caracteres). `202 {session_id, job_id}`. Usar `FormData` y dejar que el navegador forme `Content-Type` y boundary. |
-| `GET /generations` | `200` con array del historial propio: `id`, `status`, `revision`, `created_at`. |
-| `GET /generations/{id}` | `200` con estado, original, variaciones/versiones, trabajos y resumen. |
-| `GET /jobs/{job_id}` | Estado de un trabajo: `queued`, `running`, `succeeded` o `failed`, progreso aproximado y error. |
-| `GET /generations/{id}/original` | Bytes privados de la foto original. |
-| `GET /generations/{id}/versions/{version_id}/image` | Bytes privados de una versión. |
-| `POST /generations/{id}/confirm-bedroom` | Sin cuerpo. Confirma una clasificación incierta; `202 {session_id, job_id}`. |
-| `POST /generations/{id}/retry` | Sin cuerpo. Reintenta el lote inicial fallido; `202 {session_id, job_id}`. |
-| `PUT /generations/{id}/decisions/{version_id}` | JSON `{"decision":"accepted"}` o `{"decision":"rejected","reason":"Conservar el techo"}`. `200` para aceptación/no-op; `202` con `job_id` al encolar regeneración. |
-| `POST /generations/{id}/variations/{position}/retry` | Sin cuerpo. Reintenta la regeneración fallida del estilo; `202 {session_id, job_id}`. |
-| `POST /generations/{id}/summary` | Sin cuerpo. `202 {session_id, job_id}` mientras se prepara, o `200` con el resumen vigente guardado. |
-| `PATCH /generations/{id}` | `{"paused":true}` o `{"paused":false}`; `200 {id,status}`. El backend lo permite sin trabajos activos, en sesiones ready/completed/paused. |
-| `DELETE /generations/{id}` | `202 {session_id,status:"deleting"}`. Retirar del historial; la limpieza se ejecuta detrás de la API. |
+| `POST /api/generations` | `FormData`: `image`, `consent=true`, `preferences` opcional hasta 2000 caracteres. `202 {session_id,job_id}`; dejar que el navegador fije boundary. |
+| `GET /api/generations` | Historial propio: `id,status,revision,created_at`. |
+| `GET /api/generations/{id}` | Detalle de sesión, original, variaciones/versiones, jobs y resumen. |
+| `GET /api/jobs/{job_id}` | Progreso/estado `queued,running,succeeded,failed`. Polling cada 2500 ms mientras hay jobs activos; recargar detalle. |
+| `GET /api/generations/{id}/original` | Foto original privada. |
+| `GET /api/generations/{id}/versions/{version_id}/image` | Imagen privada de una versión. |
+| `POST /api/generations/{id}/confirm-bedroom` | Confirmación explícita de clasificación incierta; 202 job. |
+| `POST /api/generations/{id}/retry` | Reintento inicial fallido; 202 job. |
+| `PUT /api/generations/{id}/decisions/{version_id}` | JSON `{decision,reason?}`; aceptación/no-op 200, rechazo con job 202. |
+| `POST /api/generations/{id}/variations/{position}/retry` | Reintento de regeneración fallida; posición 1..5. |
+| `POST /api/generations/{id}/summary` | 202 job o 200 resumen vigente guardado. |
+| `PATCH /api/generations/{id}` | `{paused:boolean}`; ready/completed/paused, sin jobs activos. No cancela inferencia. |
+| `DELETE /api/generations/{id}` | 202 `deleting`; retirar de UI, limpieza asíncrona en servidor. |
 
-**Idempotencia:** todos los `POST` y el `PUT` de decisiones requieren `Idempotency-Key`. Generar un UUID por acción del usuario; reutilizarlo al repetir la misma petición cuyo resultado se desconoce tras un timeout/desconexión. Para otra acción, datos distintos o reintentar explícitamente un trabajo ya fallido, usar una clave nueva. Una repetición puede devolver un job antiguo ya finalizado: volver a consultar la sesión. No crear claves nuevas en cada reintento automático de la misma escritura.
+Todos los POST y PUT requieren **`Idempotency-Key`**: UUID por intención. El cliente conserva la clave en memoria del API/cuenta tras fallo de red, 5xx o respuesta incompleta, y la reutiliza al repetir esa misma escritura. Éxito confirmado o datos distintos generan clave nueva. No prometer persistencia de esa intención tras cerrar/reabrir el navegador.
 
-### Modelo remoto frente al modelo local
+Reglas de adaptación:
 
-El detalle remoto contiene `id`, `status`, `revision`, `created_at`, `preferences`, `original_image_url`, `variations`, `jobs` y `summary`.
+- `variations` se ordena por `position`; buscar la versión por **`current_version_id`**, no por último elemento del array. IDs/versiones del servidor nunca se fabrican.
+- `seed` sigue siendo **string**, puede exceder el rango seguro de JavaScript. `decision:null` es pendiente; estado de job se trata aparte.
+- Las versiones incluyen `description,image_url,prompt,settings,provenance,created_at,size_bytes,reason,decisions`. El historial se deriva de eventos reales de versiones.
+- El resumen es **`session.summary.summary`** y solo se muestra con revisión e IDs actuales aceptados. `historical_rejections` puede incluir una versión actualmente aceptada con un rechazo previo.
+- Además de ready/paused/completed hay generating/needs_confirmation/rejected/failed. Los estados iniciales pueden carecer de versiones: mostrar espera/confirmación/nueva foto/reintento, sin imágenes ficticias.
+- Las imágenes se resuelven contra el origen configurado y se descargan con bearer, nunca con un `<img src>` directo al API. Rechazar otro origen antes de enviar credenciales; revocar object URLs al salir.
+- Tras una escritura confirmada se mantiene su job conocido aunque falle la lectura siguiente, para poder recuperar/pollear sin repetir la acción.
+- Errores `detail` pueden ser string o lista FastAPI. 401 refresca una vez; 409/413/422 informan el detalle; desconexión/HTML ngrok/503 muestran recuperación sin fabricar éxito.
 
-| Demo local | Backend / adaptación necesaria |
-| --- | --- |
-| `Project.id` UUID local; IDs de versión `${projectId}:${style}:vN` | IDs UUID del servidor. Conservarlos como identificadores opacos; no fabricarlos ni derivarlos del número de versión. |
-| `client`, `room`, `designer` y `messages` | No son campos del detalle remoto actual. Acordar persistencia/metadatos para conservar proyectos por cliente y chat; no confundir nombre del cliente con propietario autenticado. |
-| `ProjectInput.consent` / `bedroomConfirmed` | Se comprueban en el formulario, pero el `Project` de demo no guarda esos flags. Enviar consentimiento real desde la selección actual; no reconstruirlo de proyectos guardados ni autoconfirmar una clasificación incierta. |
-| `proposals[].style`, versiones actuales al final del array | `variations[].style_id`, `label`, `current_version_id`, `versions`. Ordenar tarjetas por `position` y buscar la versión por **puntero**; no depender de `at(-1)`. |
-| `Version.status === 'pending'` | `version.decision === null` significa pendiente. Mantener decisión separada del estado del trabajo. |
-| No hay imagen individual en `Version` | La versión remota tiene `image_url`, `description`, `prompt`, `seed`, `settings`, `provenance`, `created_at`, `size_bytes`, `reason` y `decisions[]`. Usar imágenes reales y conservar trazabilidad. |
-| `events[]` planos con UUID local | Cada versión remota incluye su historial `decisions[]` (`version_id`, `decision`, `reason`, `created_at`), sin UUID de evento expuesto. Adaptar las claves de presentación sin inventar IDs de versión o peticiones. |
-| `Summary.text`, `acceptedVersionIds`, `rejectedVersionIds` | Texto en **`session.summary.summary`**, con `revision`, `accepted_version_ids`, `rejected_version_ids`, `historical_rejections`. Mostrar solo una revisión vigente. |
-| `ready`, `paused`, `completed` | Además: `generating`, `needs_confirmation`, `rejected`, `failed`. Una sesión inicial puede no tener imágenes ni versiones actuales todavía. No pasarla por el validador IndexedDB de demo, que exige cinco versiones existentes. |
-| `proposal.generation` | Derivarlo de `jobs` de tipo `regenerate` y su posición. Una sesión puede seguir `ready` con una tarjeta regenerándose. |
+## 7. Decisiones de integración y límites
 
-Mantener la `seed` del backend como **string**, no convertirla a `number` de JavaScript. El backend puede usar enteros fuera del rango seguro.
+- **Cliente/espacio:** el backend no almacena esos campos. Se guardan solo etiquetas en `localStorage bedroom-project-labels:{user_id}` y selección en `sessionStorage bedroom-active:{user_id}`. En otro navegador se identifican sesiones por fecha/ID. Esta limitación figura en la UI/formulario y README; no confundir cliente con propietario autenticado.
+- **Chat:** no hay endpoint de chat ni edición posterior de preferencias. La barra conectada indica usar Rechazar con motivo. Las preferencias iniciales y motivos alimentan regeneraciones del servidor. El chat simulado permanece exclusivamente en demo.
+- **Rechazo:** la UI exige motivo; el contrato backend fusionado mantiene `reason` opcional (hasta 1000) para otros clientes. No se cambió ese contrato al integrar frontend.
+- **Pausa:** se deshabilita durante jobs; el servidor puede responder 409 a un conflicto concurrente. No ofrecer cancelación de GPU.
+- **Persistencia:** sesiones/versiones/decisiones/jobs/resumen en servidor; no reconstruirlos con `updateProject`/`buildSummary` ni revivirlos desde IndexedDB. Los jobs continúan con la página cerrada y se recuperan al abrir la sesión.
+- **Configuración externa:** faltan dominio ngrok real y comprobación autenticada en la infraestructura del equipo. El placeholder se conserva a petición del usuario. No afirmar que esta sesión verificó GPU o Supabase reales.
 
-Descargar las imágenes mediante `fetch` autenticado, resolver sus rutas contra el origen de la API, convertir los bytes a `Blob` y usar object URLs. Un `<img src="URL_API">` directo no envía el bearer personalizado. Revocar las URLs cuando se sustituye la imagen, al desmontar y al salir de la cuenta.
+## 8. Backend y operación
 
-El resumen remoto conserva `historical_rejections` de eventos anteriores: una versión aceptada puede aparecer allí si antes estuvo rechazada. No confundir ese historial con el estado actual ni reemplazarlo por el cálculo local simplificado de la demo.
+[backend/README.md](backend/README.md) describe ejecución, secretos, almacenamiento, Kaggle y verificación autenticada.
 
-## 6. Diferencias abiertas que el agente debe resolver explícitamente
+- `backend/src/bedroom_backend/api.py`: contratos, CORS y rutas.
+- `service.py`, `repository.py`, `worker.py`: idempotencia, PostgreSQL y jobs persistentes.
+- `supabase.py`: Auth y bucket privado del servidor.
+- `runtime.py`, `models.py`: SDXL y `Qwen/Qwen3.5-4B` en dos T4.
+- `catalog.py`, `styles.json`: cinco LoRA y configuración fijada.
+- `summary.py`: Qwen elige extractos verificables; servidor construye español con decisiones/motivos.
+- `migrations/001_bedroom.sql`, `tests/`, `kaggle/build_bundle.py`, `kaggle/verify_demo.py`: esquema, tests y despliegue.
 
-1. **Motivo obligatorio:** el frontend y la petición vigente del usuario lo exigen. En `24374cf`, `DecisionInput.reason` es opcional, hasta 1000 caracteres, y `Sessions.decide` no rechaza un motivo vacío. Mantener el diálogo obligatorio de frontend y acordar la validación equivalente en backend. Hoy el textarea del frontend admite 500 caracteres; no hace falta ampliar ese límite para conectar.
-2. **Chat / preferencias después de generar:** el cliente de demo sustituye `preferences` y guarda mensajes localmente. La API actual recibe preferencias al crear la sesión; su `PATCH` solo pausa/reanuda. No existe un endpoint de chat ni de actualización de preferencias. Las regeneraciones reales usan las preferencias originales más el motivo de rechazo. Acordar el comportamiento o ampliar el contrato; no afirmar que el chat ya modifica el prompt remoto.
-3. **Clientes y nombres de proyecto:** no están en el esquema de respuesta del backend. Acordar metadatos persistentes o presentar un historial de sesiones identificado de forma honesta mientras se implementan. Evitar que esos nombres desaparezcan al recargar/cambiar de dispositivo sin advertirlo.
-4. **Pausa:** la demo permite pausar temporizadores; el backend responde `409` si hay un trabajo activo. Adaptar el botón y explicar el estado, sin prometer cancelación de inferencia que la API no ofrece.
-5. **Fuente de verdad:** en modo API, decisiones, versiones, trabajos y resumen pertenecen al servidor. No aplicar `updateProject` para fabricar confirmaciones o `storage.ts` para reconstruir el resumen del LLM. Una caché debe estar separada por cuenta y no revivir datos borrados.
-6. **Límites de imágenes:** el backend acepta solo imágenes estáticas y rechaza archivos animados. La validación del navegador de la demo no comprueba animación explícitamente. Mostrar los errores de servidor y conservar la validación de cliente como ayuda, no como autoridad.
+`GET /health` devuelve `{status:"ready"}` cuando está listo o 503. Revisar `/docs` y `/openapi.json` del dominio activo; `/docs` nunca forma parte de la URL base frontend.
 
-## 7. Orden recomendado para conectar
+El README backend reporta pruebas anteriores GPU, Supabase/ngrok, reinicio y aislamiento. Son reportes previos del equipo, no verificaciones remotas repetidas en esta integración. Los secretos de backend (`HF_TOKEN`, `NGROK_TOKEN`, `BEDROOM_DATABASE_URL`, `SUPABASE_SECRET_KEY`, certificados) quedan fuera de frontend y Git.
 
-1. Elegir un checkout/rama de integración que contenga frontend y `bedroom-backend`; revisar cambios de `README.md` y plan sin perder decisiones nuevas del frontend. No reemplazar `AGENTS.md` o el frontend por versiones antiguas al incorporar otra rama.
-2. Definir tipos de respuesta remota y un cliente API pequeño con URL configurable, bearer vigente, cabecera ngrok, validación de errores y claves de idempotencia. Añadir la configuración pública de Supabase; secretos solo en backend. Mantener la demo separada si se conserva.
-3. Implementar acceso con Supabase y la descarga autenticada de original/versiones. Separar y limpiar estado por cuenta.
-4. Sustituir el alta simulada por multipart + trabajo inicial. Polling cada pocos segundos mientras `queued/running`; terminar en `succeeded/failed` y recargar sesión. `needs_confirmation` requiere diálogo explícito; `rejected` pide otra foto. No mostrar menos de cinco como lote listo.
-5. Sustituir decisiones, reintento por posición y temporizadores por respuestas del servidor. Deshabilitar acciones duplicadas solo donde corresponda. Después de una regeneración, recuperar la versión pendiente y conservar el resto.
-6. Recuperar historial y jobs al abrir/recargar; seguir trabajos iniciados antes de cerrar la página. Resolver los metadatos de cliente, preferencias del chat y la diferencia de pausa del apartado anterior.
-7. Conectar resumen real y borrado asíncrono. Comprobar revisión antes de mostrar texto. Descartar respuestas que pertenezcan a otra sesión o cuenta.
-8. Retirar etiquetas de demo únicamente de capacidades sustituidas por servicios reales. Documentar configuración, resultados, límites y contratos finalmente usados.
+Para pruebas backend usar PostgreSQL **local desechable** y DSN de loopback/base `bedroom_test`: los tests reinician esquema. No ejecutar contra base compartida ni usar `bedroom-purge --apply` como rutina de integración.
 
-### Errores que deben tener recuperación
+## 9. Evidencia y siguientes comprobaciones
 
-| Resultado | Tratamiento |
-| --- | --- |
-| `401` | Renovar sesión Supabase o pedir acceso; no mostrar datos de la cuenta anterior. |
-| `404` | Registro/imagen/job no disponible, incluido otro propietario. |
-| `409` | Interpretar `detail` y recargar estado: versión obsoleta, acción en curso, pocas aceptaciones o conflicto de idempotencia. |
-| `413` / `422` | Feedback de archivo/campos. `detail` puede ser string de aplicación o lista de validación de FastAPI. |
-| `503`, desconexión o HTML de ngrok | Mostrar indisponibilidad y conservar el contexto necesario para recuperar; comprobar túnel/salud. No interpretar HTML como JSON ni repetir una escritura incierta con otra clave. |
+Verificado durante esta integración:
 
-No usar esperas fijas de 900/1600 ms como sincronización real. Los trabajos pueden tardar minutos y seguir activos aunque la persona cambie de proyecto o cierre la página.
+- **55/55 pruebas frontend** y `npm run build` pasan. Suite API/DTO/controlador/UI, más las reglas, fotos y persistencia demo anteriores. Procesos separados por archivo evitan contaminación entre Happy DOM y FormData nativo.
+- Fixture `frontend/src/fixtures/session.json` validado contra el modelo **`SessionDetail`** real del backend.
+- **19/19 pruebas backend** con PostgreSQL 17 local desechable. Sin cambios de contrato backend.
+- Navegador contra FastAPI/Repository/Worker reales locales, con **Auth e inferencia controladas de prueba**: acceso A, carga, cinco slots, aceptación, rechazo Attic con motivo, Attic V2 conservando las otras cuatro, cinco aceptaciones, resumen del servidor con rechazo histórico, recarga y cuenta B sin proyectos de A. No es evidencia GPU ni Supabase remoto.
+- Correcciones verificadas con pruebas que fallaron antes: clave ante ACK incompleto, job tras fallo de lectura posterior, imagen sin ruta, botones de imagen anidados y receptor nativo de `fetch` en navegador.
 
-## 8. Verificación y criterio de integración terminada
+Pendiente en infraestructura real cuando se rellene la configuración:
 
-En la entrega frontend `d6aa5ec` se verificaron **29 pruebas**, TypeScript/build y recorridos de escritorio/móvil. Hay pruebas de las 32 combinaciones de decisión, versiones obsoletas, reintentos, rechazo obligatorio/cancelación, consentimiento por foto, persistencia y recuperación. Ubicación: `frontend/src/{domain,photos,storage}.test.ts` y `frontend/src/ui.test.tsx`. Es evidencia de demo; no demuestra integración remota.
+- [ ] Cuenta A con Supabase real, foto autorizada, cinco imágenes SDXL y original privado.
+- [ ] Clasificación incierta/no dormitorio, imagen inválida y fallos/reintentos reales.
+- [ ] Rechazo, regeneración individual, desconexión durante job, recarga y resumen Qwen contrastado.
+- [ ] Cuenta B recibe 404 de sesiones/jobs/imágenes de A; token vencido y cierre de sesión limpian vistas.
+- [ ] Borrado asíncrono, recuperación tras reiniciar Kaggle/cambiar túnel y CORS exacto.
+- [ ] Medir latencias/VRAM/calidad, evaluar con 10 usuarios, informe y PPT según plan3. No marcar mediciones pendientes como resultados.
 
-Antes de declarar conectado el producto:
+## 10. Referencias y responsables
 
-- [ ] `npm test` y `npm run build` pasan; añadir pruebas para los contratos y errores remotos realmente introducidos.
-- [ ] Una cuenta A inicia sesión, sube una foto autorizada y ve exactamente cinco propuestas reales y su original.
-- [ ] Un resultado incierto pide confirmación; uno que no es dormitorio se maneja sin generar el lote.
-- [ ] Rechazar exige motivo, cancelar no cambia nada, confirmar regenera solo ese estilo y conserva IDs/imágenes/decisiones de los otros cuatro.
-- [ ] Una petición repetida por pérdida de red no duplica eventos ni trabajos; un job fallido ofrece el reintento correcto.
-- [ ] Recargar durante un trabajo recupera sesión y polling; el progreso no depende de una tarjeta montada.
-- [ ] Cinco aceptaciones habilitan el resumen real español. Sus IDs, motivos, rechazos históricos y revisión coinciden con el registro. Una decisión posterior invalida la vista anterior.
-- [ ] El historial vuelve tras cerrar/reabrir; actualizar el túnel o reiniciar Kaggle conserva las sesiones en persistencia externa.
-- [ ] Otra cuenta B recibe `404` para sesiones, jobs y fotos de A; salir de la cuenta limpia la vista y las imágenes privadas.
-- [ ] El borrado devuelve estado asíncrono coherente y no resucita desde IndexedDB.
-- [ ] Se prueban token vencido, túnel caído, `409`, errores de carga, guardado e inferencia. Se declara qué verificaciones se ejecutaron realmente.
+**Bianca:** frontend; **Ian:** backend/Kaggle/persistencia/acceso; **Fabryzzio:** SDXL/LoRA/evaluación visual; **Jeffrey:** Qwen/descripciones/resumen. Todo el equipo participa en usuarios, informe y PPT.
 
-Para backend, seguir su README: Python >=3.11, `uv`, PostgreSQL de pruebas en Docker y `BEDROOM_TEST_DSN` de loopback para la base `bedroom_test`; los tests reinician su esquema. El verificador `backend/kaggle/verify_demo.py` permite comprobar recorrido, aislamiento y recuperación tras reinicio. No ejecutar pruebas que reinicien esquemas contra la base compartida ni comandos `bedroom-purge --apply` como parte de una integración ordinaria.
+- Experimentos: `git show origin/fabryzzio/sdxl-lora-experiments:poc/lora_experiments/README.md`. Revisar manifiestos, licencias y evidencia antes de cambiar pesos; no reemplazar automáticamente el catálogo de cinco estilos.
+- [PoC imagen](poc/kaggle_back/README.md): una imagen/descripción y Qwen3-VL; distinta de la API de sesiones y Qwen3.5.
+- [PoC texto](poc/khipu_front/README.md): `{prompt,max_new_tokens}`; tampoco es multipart ni `/api/generations`.
+- [Enunciado/rúbrica](blueprint/enunciado/) y [plan3](blueprint/plan/plan3.md): fuentes de la entrega académica. Cronogramas/metas no acreditan mediciones.
 
-## 9. Otras referencias y responsables
-
-- **Bianca:** frontend y recorrido con clientes; **Ian:** backend, Kaggle, persistencia y acceso; **Fabryzzio:** SDXL/LoRA y evaluación visual; **Jeffrey:** Qwen/descripciones/resumen. Todo el equipo participa en usuarios, informe y PPT según plan3.
-- La rama experimental reporta un LoRA Luxury propio entrenado con 113 fotos, particiones separadas y evaluaciones. Leer sus manifiestos/resultados y sus licencias antes de cambiar pesos. No sustituir automáticamente el catálogo de cinco LoRA fijado en backend ni confundir esos resultados con usabilidad del producto.
-- La PoC en [`poc/kaggle_back/`](poc/kaggle_back/README.md) expone `/generate` con una imagen y una descripción y usa Qwen3-VL. No equivale a la API asíncrona de sesiones ni al Qwen3.5 del backend nuevo.
-- [`poc/khipu_front/`](poc/khipu_front/README.md) es un chat de texto con JSON `{prompt,max_new_tokens}` y tokens. Su `POST /generate` no es el multipart de imágenes de la PoC ni la nueva API `/api/generations`.
-- El [enunciado y la rúbrica](blueprint/enunciado/) determinan la entrega académica. Plan3 incluye evaluación con 10 usuarios, informe, PPT y demo; no presentar cronogramas, metas o resultados de ejemplo como mediciones realizadas.
-- Conservar fotografías autorizadas y archivos privados fuera de Git. Los valores de `HF_TOKEN`, `NGROK_TOKEN`, `BEDROOM_DATABASE_URL`, `SUPABASE_SECRET_KEY` y certificados de base pertenecen al entorno del backend. El runbook describe su configuración; esta guía no la aprovisiona.
-
-## 10. Cómo mantener este contexto útil
-
-Cuando cambie el contrato o el despliegue, actualizar esta guía con la revisión consultada, el modo real/demo de cada capacidad, decisiones nuevas y comandos/resultados comprobados. Mantener enlaces a las fuentes sin duplicar archivos de credenciales o informes enteros. No volver a resolver elecciones ya fijadas (dormitorios, cinco estilos, rechazo con motivo y diseño aprobado) salvo una petición nueva del usuario.
-
-Este documento prepara el siguiente trabajo: **no incorpora ramas, no configura Supabase/ngrok y no conecta el frontend por sí solo**.
+Mantener este documento al cambiar contrato, modo, despliegue o verificaciones. Anotar lo ejecutado y lo pendiente, sin credenciales ni fotos privadas. No volver a decidir dormitorios, cinco estilos, motivo obligatorio o diseño aprobado salvo nueva petición del usuario.

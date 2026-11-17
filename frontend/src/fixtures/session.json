@@ -1,0 +1,147 @@
+{
+  "id": "00000000-0000-0000-0000-000000000010",
+  "status": "ready",
+  "revision": 1,
+  "created_at": "2026-11-17T12:00:00Z",
+  "preferences": "Conservar la ventana",
+  "original_image_url": "/api/generations/00000000-0000-0000-0000-000000000010/original",
+  "variations": [
+    {
+      "position": 1,
+      "style_id": "luxury",
+      "label": "Luxury",
+      "current_version_id": "00000000-0000-0000-0000-000000000021",
+      "versions": [
+        {
+          "id": "00000000-0000-0000-0000-000000000021",
+          "number": 1,
+          "prompt": "Bedroom, Luxury",
+          "seed": "9223372036854775806",
+          "description": "Descripción de Luxury",
+          "decision": null,
+          "reason": null,
+          "settings": {
+            "strength": 0.75
+          },
+          "provenance": {
+            "vision_model": "Qwen/Qwen3.5-4B"
+          },
+          "created_at": "2026-11-17T12:00:00Z",
+          "size_bytes": 1000,
+          "image_url": "/api/generations/00000000-0000-0000-0000-000000000010/versions/00000000-0000-0000-0000-000000000021/image",
+          "decisions": []
+        }
+      ]
+    },
+    {
+      "position": 2,
+      "style_id": "japanese",
+      "label": "Japanese",
+      "current_version_id": "00000000-0000-0000-0000-000000000022",
+      "versions": [
+        {
+          "id": "00000000-0000-0000-0000-000000000022",
+          "number": 1,
+          "prompt": "Bedroom, Japanese",
+          "seed": "9223372036854775806",
+          "description": "Descripción de Japanese",
+          "decision": null,
+          "reason": null,
+          "settings": {
+            "strength": 0.75
+          },
+          "provenance": {
+            "vision_model": "Qwen/Qwen3.5-4B"
+          },
+          "created_at": "2026-11-17T12:00:00Z",
+          "size_bytes": 1000,
+          "image_url": "/api/generations/00000000-0000-0000-0000-000000000010/versions/00000000-0000-0000-0000-000000000022/image",
+          "decisions": []
+        }
+      ]
+    },
+    {
+      "position": 3,
+      "style_id": "neo-classic",
+      "label": "Neo Classic",
+      "current_version_id": "00000000-0000-0000-0000-000000000023",
+      "versions": [
+        {
+          "id": "00000000-0000-0000-0000-000000000023",
+          "number": 1,
+          "prompt": "Bedroom, Neo Classic",
+          "seed": "9223372036854775806",
+          "description": "Descripción de Neo Classic",
+          "decision": null,
+          "reason": null,
+          "settings": {
+            "strength": 0.75
+          },
+          "provenance": {
+            "vision_model": "Qwen/Qwen3.5-4B"
+          },
+          "created_at": "2026-11-17T12:00:00Z",
+          "size_bytes": 1000,
+          "image_url": "/api/generations/00000000-0000-0000-0000-000000000010/versions/00000000-0000-0000-0000-000000000023/image",
+          "decisions": []
+        }
+      ]
+    },
+    {
+      "position": 4,
+      "style_id": "attic",
+      "label": "Attic",
+      "current_version_id": "00000000-0000-0000-0000-000000000024",
+      "versions": [
+        {
+          "id": "00000000-0000-0000-0000-000000000024",
+          "number": 1,
+          "prompt": "Bedroom, Attic",
+          "seed": "9223372036854775806",
+          "description": "Descripción de Attic",
+          "decision": null,
+          "reason": null,
+          "settings": {
+            "strength": 0.75
+          },
+          "provenance": {
+            "vision_model": "Qwen/Qwen3.5-4B"
+          },
+          "created_at": "2026-11-17T12:00:00Z",
+          "size_bytes": 1000,
+          "image_url": "/api/generations/00000000-0000-0000-0000-000000000010/versions/00000000-0000-0000-0000-000000000024/image",
+          "decisions": []
+        }
+      ]
+    },
+    {
+      "position": 5,
+      "style_id": "cyberpunk",
+      "label": "Cyberpunk",
+      "current_version_id": "00000000-0000-0000-0000-000000000025",
+      "versions": [
+        {
+          "id": "00000000-0000-0000-0000-000000000025",
+          "number": 1,
+          "prompt": "Bedroom, Cyberpunk",
+          "seed": "9223372036854775806",
+          "description": "Descripción de Cyberpunk",
+          "decision": null,
+          "reason": null,
+          "settings": {
+            "strength": 0.75
+          },
+          "provenance": {
+            "vision_model": "Qwen/Qwen3.5-4B"
+          },
+          "created_at": "2026-11-17T12:00:00Z",
+          "size_bytes": 1000,
+          "image_url": "/api/generations/00000000-0000-0000-0000-000000000010/versions/00000000-0000-0000-0000-000000000025/image",
+          "decisions": []
+        }
+      ]
+    }
+  ],
+  "summary": null,
+  "jobs": []
+}

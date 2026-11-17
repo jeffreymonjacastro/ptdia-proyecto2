@@ -221,3 +221,6 @@ __marimo__/
 
 # Civitai
 *.safetensors
+# Configuración local del frontend (no versionar valores de conexión)
+frontend/.env.local
+frontend/.env.*.local

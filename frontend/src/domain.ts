@@ -1,13 +1,14 @@
 export type Style = 'luxury' | 'japanese' | 'neo-classic' | 'attic' | 'cyberpunk'
 export type Decision = 'pending' | 'accepted' | 'rejected'
-export type Photo = { kind: 'example'; name: string } | { kind: 'upload'; name: string; blob: Blob; width: number; height: number }
-export type Version = { id: string; number: number; status: Decision; description: string; createdAt: string }
-export type Proposal = { position: number; style: Style; versions: Version[]; generation: 'idle' | 'generating' | 'failed' }
+export type Photo = { kind: 'example'; name: string } | { kind: 'upload'; name: string; blob: Blob; width: number; height: number } | { kind: 'remote'; name: string; url: string }
+export type Version = { id: string; number: number; status: Decision; description: string; createdAt: string; imageUrl?: string; seed?: string }
+export type Proposal = { position: number; style: Style; label?: string; currentVersionId?: string; versions: Version[]; generation: 'idle' | 'generating' | 'failed' }
+export type Job = { id: string; kind: 'initial' | 'regenerate' | 'summary' | 'delete'; status: 'queued' | 'running' | 'succeeded' | 'failed'; position: number | null; progress: number; error: string | null }
 export type DecisionEvent = { id: string; position: number; versionId: string; status: Exclude<Decision, 'pending'>; reason: string; createdAt: string }
 export type Summary = { revision: number; acceptedVersionIds: string[]; rejectedVersionIds: string[]; text: string }
 export type Project = {
   id: string; client: string; room: string; preferences: string; photo: Photo; createdAt: string
-  status: 'ready' | 'paused' | 'completed'; revision: number; proposals: Proposal[]
+  status: 'ready' | 'paused' | 'completed' | 'generating' | 'needs_confirmation' | 'rejected' | 'failed'; revision: number; proposals: Proposal[]; jobs?: Job[]
   events: DecisionEvent[]; messages: { id: string; text: string; createdAt: string }[]; summary?: Summary
 }
 export type ProjectInput = Pick<Project, 'client' | 'room' | 'preferences' | 'photo'> & { consent: boolean; bedroomConfirmed: boolean }
@@ -27,7 +28,7 @@ export const STYLES: Record<Style, { name: string; description: string; crop: st
   cyberpunk: { name: 'Cyberpunk', description: 'Contrastes oscuros y luz neón.', crop: '682 520 374 188', accent: '#b69dca' },
 }
 export const STYLE_IDS = Object.keys(STYLES) as Style[]
-export const currentVersion = (proposal: Proposal): Version => proposal.versions[proposal.versions.length - 1]
+export const currentVersion = (proposal: Proposal): Version => proposal.currentVersionId ? proposal.versions.find(v => v.id === proposal.currentVersionId)! : proposal.versions[proposal.versions.length - 1]
 const now = () => new Date().toISOString()
 
 export function createProject(input: ProjectInput): Project {
@@ -45,7 +46,7 @@ export function createProject(input: ProjectInput): Project {
 }
 
 export function canSummarize(project: Project): boolean {
-  return project.status !== 'paused' && project.proposals.length === 5 && project.proposals.every(p => p.generation === 'idle' && currentVersion(p).status === 'accepted')
+  return ['ready', 'completed'].includes(project.status) && project.proposals.length === 5 && project.proposals.every(p => p.versions.length > 0 && p.generation === 'idle' && currentVersion(p)?.status === 'accepted')
 }
 
 export function buildSummary(project: Project): Summary {

@@ -7,13 +7,14 @@ function freshWorkspace(): Workspace {
   return { schema: 1, projects, activeId: projects[0].id, designer: 'Mariana' }
 }
 
-export function useWorkspace() {
+export function useWorkspace(enabled = true) {
   const [workspace, setWorkspace] = useState<Workspace>()
   const [storageError, setStorageError] = useState('')
   const [saving, setSaving] = useState(false)
   const writable = useRef(true)
   const latestSave = useRef(0)
   useEffect(() => {
+    if (!enabled) return
     let active = true
     loadWorkspace().then(data => { if (active) setWorkspace(data ?? freshWorkspace()) }).catch(cause => {
       if (!active) return
@@ -22,9 +23,9 @@ export function useWorkspace() {
       setWorkspace({ schema: 1, projects: [], activeId: null, designer: 'Mariana' })
     })
     return () => { active = false }
-  }, [])
+  }, [enabled])
   useEffect(() => {
-    if (!workspace || !writable.current) return
+    if (!enabled || !workspace || !writable.current) return
     const saveId = ++latestSave.current
     setSaving(true)
     void saveWorkspace(workspace).then(() => {
@@ -35,7 +36,7 @@ export function useWorkspace() {
         setStorageError('No se pudo guardar el último cambio. Puede faltar espacio o estar bloqueado el almacenamiento. Conserva esta pestaña abierta y vuelve a intentar.')
       }
     })
-  }, [workspace])
+  }, [enabled, workspace])
   useEffect(() => {
     if (!saving && !storageError) return
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = '' }

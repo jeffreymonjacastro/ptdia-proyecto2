@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode, type CSSProperties } from 'react'
 import { STYLES, type Style, type Photo } from './domain.ts'
+import { PrivateImage } from './PrivateImage.tsx'
 
 const paths = {
   bed: 'M3 18v-7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v7M3 15h18M3 19v2m18-2v2M5 9V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v4M7 9V6h4v3m2 0V6h4v3',
@@ -37,10 +38,11 @@ export function PhotoImage({ photo, className = '' }: { photo: Photo; className?
     return () => URL.revokeObjectURL(next)
   }, [photo])
   if (photo.kind === 'example') return <RoomImage style="japanese" className={className} />
+  if (photo.kind === 'remote') return <PrivateImage path={photo.url} alt={`Fotografía original: ${photo.name}`} className={className}/>
   return <img className={`photo-image ${className}`} src={url || undefined} alt={`Fotografía original: ${photo.name}`} />
 }
 
-export function Dialog({ title, eyebrow, children, onClose, wide = false, drawer = false }: { title: string; eyebrow?: string; children: ReactNode; onClose: () => void; wide?: boolean; drawer?: boolean }) {
+export function Dialog({ title, eyebrow, children, onClose, wide = false, drawer = false, busy = false }: { title: string; eyebrow?: string; children: ReactNode; onClose: () => void; wide?: boolean; drawer?: boolean; busy?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null)
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null
@@ -51,10 +53,10 @@ export function Dialog({ title, eyebrow, children, onClose, wide = false, drawer
     return () => { dialog.close(); document.body.style.overflow = scroll; previous?.focus() }
   }, [])
   return <dialog ref={ref} className={`dialog ${wide ? 'wide-dialog' : ''} ${drawer ? 'drawer-dialog' : ''}`} aria-labelledby="dialog-title"
-    onCancel={onClose} onClick={event => { if (event.target === event.currentTarget) onClose() }}>
+    onCancel={event => { event.preventDefault(); if (!busy) onClose() }} onClick={event => { if (!busy && event.target === event.currentTarget) onClose() }}>
     <div className="dialog-surface">
       <header className="dialog-heading"><div>{eyebrow && <p className="eyebrow">{eyebrow}</p>}<h2 id="dialog-title">{title}</h2></div>
-        <button className="icon-button" aria-label="Cerrar ventana" onClick={onClose}><Icon name="close" /></button>
+        <button className="icon-button" aria-label="Cerrar ventana" onClick={onClose} disabled={busy}><Icon name="close" /></button>
       </header>
       {children}
     </div>
@@ -66,3 +68,7 @@ export function Mark({ small = false }: { small?: boolean }) {
 }
 
 export const styleAccent = (style: Style): CSSProperties => ({ '--style-accent': STYLES[style].accent }) as CSSProperties
+
+export function ConnectionEntry({children}:{children:ReactNode}) {
+  return <main className="connection-screen"><div className="connection-card"><div className="connection-brand"><Icon name="bed" size={32}/><span>estudio</span></div>{children}</div></main>
+}

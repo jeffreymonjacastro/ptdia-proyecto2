@@ -5,9 +5,13 @@ import { ProposalCard } from './ProposalCard.tsx'
 import { ProjectForm } from './ProjectForm.tsx'
 import { History } from './History.tsx'
 import { useWorkspace } from './useWorkspace.ts'
+import { activeJobs } from './remote.ts'
+import { PrivateImage } from './PrivateImage.tsx'
+import type { ActionHandler, RemoteController } from './useRemoteWorkspace.ts'
 
-export default function App() {
-  const { workspace, setWorkspace, saving, storageError, retrySave } = useWorkspace()
+export default function App({ remote }: { remote?: RemoteController }) {
+  const local = useWorkspace(!remote)
+  const { workspace, setWorkspace, saving, storageError, retrySave } = remote ?? local
   const [search, setSearch] = useState('')
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [dialog, setDialog] = useState<'new' | 'demo' | 'profile' | 'delete' | null>(null)
@@ -38,14 +42,19 @@ export default function App() {
   }, [mobile, sidebarOpen])
   const activeId = workspace?.activeId
   const onAction = useCallback((action: ProjectAction) => {
+    if (remote) return remote.onAction(action)
     setWorkspace(previous => previous && { ...previous, projects: previous.projects.map(p => p.id === activeId ? updateProject(p, action) : p) })
-  }, [activeId, setWorkspace])
+  }, [activeId, setWorkspace, remote?.onAction])
   if (!workspace) return <div className="app-loading" role="status"><Icon name="bed" size={36} /><p>Abriendo tu estudio…</p></div>
   const project = workspace.projects.find(p => p.id === activeId)
   const matches = workspace.projects.filter(p => `${p.client} ${p.room}`.toLocaleLowerCase('es').includes(search.toLocaleLowerCase('es')))
   const select = (id: string) => { setWorkspace(previous => previous && { ...previous, activeId: id }); setSidebarOpen(false); setHistoryOpen(false) }
   function addProject(next: Project) { setWorkspace(previous => previous && { ...previous, projects: [next, ...previous.projects], activeId: next.id }); setSidebarOpen(false); setSearch('') }
-  function deleteProject() {
+  async function deleteProject() {
+    if (remote && activeId) {
+      try { await remote.remove(activeId); setHistoryOpen(false); setDialog(null) } catch { /* El controlador conserva el error y permite reintentar. */ }
+      return
+    }
     setWorkspace(previous => {
       if (!previous) return previous
       const projects = previous.projects.filter(p => p.id !== activeId)
@@ -67,42 +76,45 @@ export default function App() {
         </button>)}
         {!matches.length && <p className="no-projects">{search ? 'No encontramos ese cliente.' : 'Tu próximo proyecto empieza aquí.'}</p>}
       </nav>
-      <div className="sidebar-bottom"><div className="local-note"><span className="status-dot" /><span>{saving ? 'Guardando cambios…' : storageError ? 'Cambios sin guardar' : 'Guardado en este navegador'}<small>Tu estudio, a tu ritmo.</small></span></div>
-        <button className="designer-profile" onClick={() => setDialog('profile')}><span className="avatar">{workspace.designer.charAt(0).toUpperCase()}</span><span><strong>{workspace.designer}</strong><small>Diseñadora · acceso demo</small></span><Icon name="chevron" size={15} /></button>
+      <div className="sidebar-bottom"><div className="local-note"><span className="status-dot" /><span>{saving ? 'Guardando cambios…' : storageError ? (remote ? 'Revisar conexión' : 'Cambios sin guardar') : remote ? 'Historial de tu cuenta' : 'Guardado en este navegador'}<small>Tu estudio, a tu ritmo.</small></span></div>
+        <button className="designer-profile" onClick={() => setDialog('profile')}><span className="avatar">{workspace.designer.charAt(0).toUpperCase()}</span><span><strong>{workspace.designer}</strong><small>{remote ? 'Cuenta autenticada' : 'Diseñadora · acceso demo'}</small></span><Icon name="chevron" size={15} /></button>
       </div>
     </aside>
     <main className="main-panel" inert={mobile && sidebarOpen}>
       <header className="topbar">
         <button className="icon-button mobile-menu" onClick={() => setSidebarOpen(!sidebarOpen)} aria-label="Mostrar proyectos" aria-expanded={sidebarOpen}><Icon name="menu" /></button>
         <div className="breadcrumb"><Icon name="folder" size={18} /><span>{project?.client || 'Tu estudio'}<span className="breadcrumb-divider">/</span><strong>{project?.room || 'Proyectos de dormitorios'}</strong></span></div>
-        <div className="topbar-actions"><button className="demo-badge" onClick={() => setDialog('demo')}><span className="status-dot" />Modo demo</button>
+        <div className="topbar-actions">{remote && <button className="icon-button" onClick={() => void remote.refresh()} aria-label="Actualizar proyectos"><Icon name="refresh" size={16}/></button>}<button className="demo-badge" onClick={() => setDialog('demo')}><span className="status-dot" />{remote ? 'Modo conectado' : 'Modo demo'}</button>
           {project && <button className="button history-button" aria-label="Ver historial" onClick={() => setHistoryOpen(true)}><Icon name="clock" size={16} /><span>Ver historial</span></button>}
         </div>
       </header>
       {storageError && <div className="storage-warning" role="alert"><Icon name="info" size={17} /><p>{storageError}</p><button onClick={() => void retrySave()}>Reintentar</button></div>}
-      {project ? <Workbench key={project.id} project={project} onAction={onAction} onNew={() => setDialog('new')} onDelete={() => setDialog('delete')} />
+      {project ? (remote && (project.proposals.length !== 5 || !['ready','paused','completed'].includes(project.status)) ? <RemoteStatus project={project} remote={remote} onNew={() => setDialog('new')}/> : <Workbench key={project.id} project={project} onAction={onAction} onNew={() => setDialog('new')} onDelete={() => setDialog('delete')} connected={!!remote} saving={saving}/>)
         : <div className="empty-studio"><Mark /><p className="eyebrow">UN ESPACIO POR IMAGINAR</p><h1>El próximo dormitorio<br />empieza contigo.</h1><p>Crea un proyecto y explora cinco estilos con tu cliente.</p><button className="button primary" onClick={() => setDialog('new')}><Icon name="plus" />Nuevo proyecto</button></div>}
     </main>
-    {dialog === 'new' && <ProjectForm onClose={() => setDialog(null)} onCreate={addProject} />}
+    {dialog === 'new' && <ProjectForm onClose={() => setDialog(null)} onCreate={addProject} onSubmitRemote={remote?.create} />}
     {historyOpen && project && <History project={project} onClose={() => setHistoryOpen(false)} />}
-    {dialog === 'demo' && <Dialog title="Un estudio para probar" eyebrow="MODO DEMOSTRACIÓN" onClose={() => setDialog(null)}>
+    {dialog === 'demo' && remote && <Dialog title="Tu estudio conectado" eyebrow="PROYECTOS DE TU CUENTA" onClose={() => setDialog(null)}><p className="dialog-intro">Las fotografías, propuestas, decisiones y resúmenes se recuperan del servidor. Puedes cerrar la página y volver a abrir tus proyectos mientras se preparan las imágenes.</p><p className="dialog-intro">Los nombres de cliente y espacio se recuerdan en este navegador para tu cuenta. Para ajustar una propuesta, recházala y escribe qué quieres cambiar.</p><button className="button primary full-width" onClick={() => setDialog(null)}>Volver al estudio</button></Dialog>}
+    {dialog === 'demo' && !remote && <Dialog title="Un estudio para probar" eyebrow="MODO DEMOSTRACIÓN" onClose={() => setDialog(null)}>
       <div className="demo-explanation"><Mark /><p>Explora el recorrido completo sin conectarte a un servidor.</p><ul><li>Las cinco imágenes y sus descripciones son ejemplos del mockup.</li><li>Rechazar crea una nueva versión pendiente del mismo ejemplo, sin modificar las otras propuestas.</li><li>El resumen se construye con tus decisiones; todavía no interviene una IA.</li><li>Las fotografías y el historial se guardan en este navegador. No se envían a ningún servidor.</li></ul><p className="muted">El acceso es ilustrativo. Esta demo no ofrece cuentas privadas ni autenticación; cualquier persona que use este perfil del navegador puede abrir sus proyectos.</p></div>
       <button className="button primary full-width" onClick={() => setDialog(null)}>Volver al estudio</button>
     </Dialog>}
-    {dialog === 'profile' && <Dialog title="Tu espacio de diseño" eyebrow="ACCESO DE DEMOSTRACIÓN" onClose={() => setDialog(null)}>
+    {dialog === 'profile' && remote && <Dialog title="Tu cuenta" eyebrow="ACCESO AL ESTUDIO" onClose={() => setDialog(null)}><p className="dialog-intro">{workspace.designer}</p><p className="dialog-intro">Al salir se cierran las vistas de tus proyectos y se liberan las imágenes privadas de esta sesión.</p><button className="button secondary full-width" onClick={() => void remote.signOut()}>Cerrar sesión</button></Dialog>}
+    {dialog === 'profile' && !remote && <Dialog title="Tu espacio de diseño" eyebrow="ACCESO DE DEMOSTRACIÓN" onClose={() => setDialog(null)}>
       <p className="dialog-intro">Personaliza el nombre que aparece en el estudio. Es un perfil local de demostración, sin contraseña ni cuenta privada.</p>
       <form className="profile-form" onSubmit={event => { event.preventDefault(); const name = String(new FormData(event.currentTarget).get('designer') || '').trim(); if (!name) return; setWorkspace(previous => previous && { ...previous, designer: name }); setDialog(null) }}>
         <label>Tu nombre<input name="designer" defaultValue={workspace.designer} maxLength={60} required autoFocus /></label><button className="button primary" type="submit">Entrar al estudio</button>
       </form>
     </Dialog>}
-    {dialog === 'delete' && project && <Dialog title="¿Eliminar este proyecto?" eyebrow="BORRAR DE ESTE NAVEGADOR" onClose={() => setDialog(null)}>
-      <p className="dialog-intro">Se eliminarán la foto, las versiones y las decisiones de <strong>{project.client} / {project.room}</strong> del historial local. Esta acción no se puede deshacer.</p>
-      <div className="confirmation-actions"><button className="button secondary" onClick={() => setDialog(null)}>Conservar proyecto</button><button className="button danger" onClick={deleteProject}><Icon name="trash" size={16} />Eliminar proyecto</button></div>
+    {dialog === 'delete' && project && <Dialog title="¿Eliminar este proyecto?" eyebrow={remote ? 'BORRAR DE TU CUENTA' : 'BORRAR DE ESTE NAVEGADOR'} onClose={() => setDialog(null)} busy={saving}>
+      <p className="dialog-intro">Se eliminarán la foto, las versiones y las decisiones de <strong>{project.client} / {project.room}</strong> {remote ? 'de tu cuenta y del almacenamiento del servidor' : 'del historial local'}. Esta acción no se puede deshacer.</p>
+      {remote?.storageError && <p className="error-message" role="alert">{remote.storageError}</p>}
+      <div className="confirmation-actions"><button className="button secondary" onClick={() => setDialog(null)} disabled={saving}>Conservar proyecto</button><button className="button danger" onClick={() => void deleteProject()} disabled={saving}><Icon name="trash" size={16} />{saving ? 'Eliminando…' : 'Eliminar proyecto'}</button></div>
     </Dialog>}
   </div>
 }
 
-function Workbench({ project, onAction, onNew, onDelete }: { project: Project; onAction: (action: ProjectAction) => void; onNew: () => void; onDelete: () => void }) {
+function Workbench({ project, onAction, onNew, onDelete, connected = false, saving = false }: { project: Project; onAction: ActionHandler; onNew: () => void; onDelete: () => void; connected?:boolean; saving?:boolean }) {
   const [prompt, setPrompt] = useState('')
   const [preview, setPreview] = useState<Style | 'original' | null>(null)
   const [copyStatus, setCopyStatus] = useState('')
@@ -111,6 +123,8 @@ function Workbench({ project, onAction, onNew, onDelete }: { project: Project; o
   const paused = project.status === 'paused'
   const accepted = project.proposals.filter(p => currentVersion(p).status === 'accepted').length
   const rejected = project.events.filter(e => e.status === 'rejected')
+  const summaryBusy = activeJobs(project).some(j => j.kind === 'summary')
+  const sendAction = (action:ProjectAction) => { const result = onAction(action); if (result) void result.catch(() => {}) }
   function send(event: FormEvent) {
     event.preventDefault()
     if (!prompt.trim() || paused) return
@@ -127,19 +141,19 @@ function Workbench({ project, onAction, onNew, onDelete }: { project: Project; o
     <div className="conversation-scroll">
       <div className="conversation-content">
         <div className="session-meta"><span className="session-label"><span className={`status-dot ${paused ? 'paused' : ''}`} />{paused ? 'Sesión en pausa' : project.status === 'completed' ? 'Selección completada' : 'Sesión de diseño'}<span className="meta-separator">·</span><span className="scope-tag">Solo dormitorios</span></span>
-          <div className="session-actions"><button className="text-button" onClick={() => onAction({ type: paused ? 'resume' : 'pause' })}><Icon name={paused ? 'play' : 'pause'} size={13} />{paused ? 'Reanudar' : 'Pausar'}</button><button className="icon-button delete-project" onClick={onDelete} aria-label="Eliminar proyecto"><Icon name="trash" size={14} /></button></div>
+          <div className="session-actions"><button className="text-button" onClick={() => sendAction({ type: paused ? 'resume' : 'pause' })} disabled={connected && (saving || activeJobs(project).length > 0)} title={connected && activeJobs(project).length ? 'Disponible cuando terminen las propuestas en curso.' : undefined}><Icon name={paused ? 'play' : 'pause'} size={13} />{paused ? 'Reanudar' : 'Pausar'}</button><button className="icon-button delete-project" onClick={onDelete} aria-label="Eliminar proyecto"><Icon name="trash" size={14} /></button></div>
         </div>
         <div className="user-message"><p>{project.messages[0]?.text || project.preferences || 'Queremos explorar cinco estilos para este dormitorio.'}</p><button className="attachment-chip" onClick={() => setPreview('original')}><Icon name="attach" size={15} /><span>{project.photo.name}</span><span className="attachment-type">{project.photo.kind === 'example' ? 'Ejemplo' : 'Original'}</span></button></div>
         <section className="assistant-message" aria-label="Propuestas de diseño">
           <div className="assistant-heading"><Mark /><div><strong>Cinco maneras de habitar el mismo espacio.</strong><p>Revisemos colores, materiales e iluminación. Tú y tu cliente deciden.</p></div></div>
           <div className="proposals-grid">
-            {project.proposals.map(proposal => <ProposalCard key={proposal.position} proposal={proposal} paused={paused} onAction={onAction} onPreview={() => setPreview(proposal.style)} />)}
+            {project.proposals.map(proposal => <ProposalCard key={proposal.position} proposal={proposal} paused={paused} onAction={onAction} onPreview={() => setPreview(proposal.style)} connected={connected}/>)}
             <div className="gallery-note"><span className="line-decoration" /><Icon name="bed" size={28} /><p>La misma habitación.<br /><em>Una nueva perspectiva.</em></p><span>5 estilos · tu criterio</span></div>
           </div>
-          <p className="demo-gallery-caption"><Icon name="info" size={13} />Imágenes de ejemplo. La demo no transforma tu fotografía; cada regeneración reutiliza el mismo ejemplo.</p>
+          <p className="demo-gallery-caption"><Icon name="info" size={13} />{connected ? 'Propuestas generadas desde tu fotografía. Revisa la distribución y los detalles antes de aceptar.' : 'Imágenes de ejemplo. La demo no transforma tu fotografía; cada regeneración reutiliza el mismo ejemplo.'}</p>
         </section>
         <section className="selection-progress" aria-label="Progreso de selección"><div className="progress-heading"><span role="status"><Icon name="check" size={16} /><strong>{accepted} de 5</strong> propuestas aceptadas</span><div className="progress-dots" aria-hidden="true">{project.proposals.map(p => <span key={p.position} className={currentVersion(p).status === 'accepted' ? 'done' : ''} />)}</div></div>
-          <div className="progress-bottom"><p>{paused ? 'Reanuda la sesión para continuar revisando.' : accepted === 5 ? 'Todo listo. Revisa el resumen de tus decisiones.' : 'Al rechazar, se prepara solo una nueva versión. Las aceptadas se conservan.'}</p><button className="summary-button" disabled={!canSummarize(project)} onClick={() => { onAction({ type: 'summarize' }); window.setTimeout(() => end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 50) }}><Icon name="sparkle" size={15} />{project.summary ? 'Actualizar resumen' : 'Resumen final'}<Icon name="chevron" size={13} /></button></div>
+          <div className="progress-bottom"><p>{summaryBusy ? 'Preparando el resumen de tus decisiones…' : paused ? 'Reanuda la sesión para continuar revisando.' : accepted === 5 ? 'Todo listo. Revisa el resumen de tus decisiones.' : 'Al rechazar, se prepara solo una nueva versión. Las aceptadas se conservan.'}</p><button className="summary-button" disabled={!canSummarize(project) || (connected && (saving || summaryBusy))} onClick={() => { sendAction({ type: 'summarize' }); window.setTimeout(() => end.current?.scrollIntoView({ behavior: 'smooth', block: 'end' }), 50) }}><Icon name="sparkle" size={15} />{summaryBusy ? 'Preparando…' : project.summary ? 'Actualizar resumen' : 'Resumen final'}<Icon name="chevron" size={13} /></button></div>
         </section>
         {project.messages.slice(1).map(message => <div className="feedback-exchange" key={message.id}><div className="user-message"><p>{message.text}</p></div><div className="assistant-feedback"><Mark small /><p>Preferencia anotada para las próximas versiones. Tus propuestas aceptadas se conservan. <span>Respuesta de demostración.</span></p></div></div>)}
         {rejected.length > 0 && <details className="rejections-summary"><summary><Icon name="clock" size={15} />{rejected.length} {rejected.length === 1 ? 'rechazo registrado' : 'rechazos registrados'}<Icon name="chevron" size={13} /></summary><ul>{rejected.map(event => {
@@ -148,7 +162,8 @@ function Workbench({ project, onAction, onNew, onDelete }: { project: Project; o
           return <li key={event.id}><span>{STYLES[p.style].name} · V{v.number}</span>{event.reason || 'Sin motivo indicado.'}</li>
         })}</ul></details>}
         {project.summary && <section className="final-summary" aria-label="Resumen final de la sesión"><div className="final-summary-heading"><Mark /><div><p className="eyebrow">SELECCIÓN COMPLETADA</p><h2>Un dormitorio, cinco posibilidades.</h2></div><button className="icon-button" onClick={() => void copySummary()} aria-label="Copiar resumen"><Icon name="copy" size={17} /></button></div>
-          <p>Las cinco propuestas actuales están aceptadas. Este resumen de demostración refleja el registro de decisiones.</p>
+          <p>{connected ? 'Las cinco propuestas actuales están aceptadas. Resumen recuperado del registro de tu proyecto.' : 'Las cinco propuestas actuales están aceptadas. Este resumen de demostración refleja el registro de decisiones.'}</p>
+          {connected && <p className="remote-summary-text">{project.summary.text}</p>}
           <div className="accepted-styles">{project.proposals.map(p => <span key={p.position}><Icon name="check" size={13} />{STYLES[p.style].name} · V{currentVersion(p).number}</span>)}</div>
           <p className="muted">{rejected.length ? `${rejected.length === 1 ? 'Se conserva 1 rechazo' : `Se conservan ${rejected.length} rechazos`} en el historial, con sus motivos cuando se indicaron.` : 'No se registraron rechazos.'} No se atribuyen preferencias adicionales.</p>
           <details><summary>Ver registro del resumen</summary><pre>{project.summary.text}</pre></details>{copyStatus && <p role="status" className="copy-status">{copyStatus}</p>}
@@ -156,14 +171,25 @@ function Workbench({ project, onAction, onNew, onDelete }: { project: Project; o
         <div ref={end} />
       </div>
     </div>
-    <footer className="composer-area"><form className="composer" onSubmit={send}><button type="button" className="icon-button attach-button" onClick={onNew} aria-label="Crear proyecto con otra fotografía"><Icon name="plus" size={21} /></button><div className="composer-divider" />
+    <footer className="composer-area">{connected ? <div className="remote-readonly-composer"><button className="icon-button" onClick={onNew} aria-label="Crear proyecto con otra fotografía"><Icon name="plus" size={21}/></button><span>Para cambiar una propuesta, pulsa Rechazar e indica qué quieres ajustar.</span></div> : <form className="composer" onSubmit={send}><button type="button" className="icon-button attach-button" onClick={onNew} aria-label="Crear proyecto con otra fotografía"><Icon name="plus" size={21} /></button><div className="composer-divider" />
       <label className="sr-only" htmlFor="client-prompt">Preferencias del cliente</label><textarea ref={composer} id="client-prompt" placeholder={paused ? 'La sesión está en pausa. Reanúdala para continuar.' : 'Describe qué quiere cambiar tu cliente…'} rows={1} maxLength={2000} value={prompt} disabled={paused} onChange={event => setPrompt(event.target.value)} onKeyDown={event => { if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) { event.preventDefault(); event.currentTarget.form?.requestSubmit() } }} />
-      <button type="submit" className="send-button" disabled={paused || !prompt.trim()} aria-label="Enviar preferencias"><Icon name="arrow" size={19} /></button></form>
-      <p className="composer-caption">Solo dormitorios<span>·</span>Tú y tu cliente tienen la última palabra.<span className="composer-demo">Demo local</span></p>
+      <button type="submit" className="send-button" disabled={paused || !prompt.trim()} aria-label="Enviar preferencias"><Icon name="arrow" size={19} /></button></form>}
+      <p className="composer-caption">Solo dormitorios<span>·</span>Tú y tu cliente tienen la última palabra.<span className="composer-demo">{connected ? 'Tu cuenta' : 'Demo local'}</span></p>
     </footer>
-    {preview && <Dialog title={preview === 'original' ? 'Fotografía original' : `${STYLES[preview].name} · Versión ${currentVersion(project.proposals.find(p => p.style === preview)!).number}`} eyebrow={preview === 'original' ? project.photo.name : 'PROPUESTA DE EJEMPLO'} onClose={() => setPreview(null)} wide>
-      {preview === 'original' ? <PhotoImage photo={project.photo} className="preview-image" /> : <RoomImage style={preview} className="preview-image" />}
-      <p className="preview-caption">{preview === 'original' && project.photo.kind === 'upload' ? 'Fotografía guardada únicamente en este navegador.' : 'Imagen ilustrativa del mockup; no es una transformación generada de tu fotografía.'}</p>
+    {preview && <Dialog title={preview === 'original' ? 'Fotografía original' : `${STYLES[preview].name} · Versión ${currentVersion(project.proposals.find(p => p.style === preview)!).number}`} eyebrow={preview === 'original' ? project.photo.name : connected ? 'PROPUESTA DE TU PROYECTO' : 'PROPUESTA DE EJEMPLO'} onClose={() => setPreview(null)} wide>
+      {preview === 'original' ? <PhotoImage photo={project.photo} className="preview-image" /> : connected ? <PrivateImage path={currentVersion(project.proposals.find(p => p.style === preview)!).imageUrl!} alt={`Propuesta ${STYLES[preview].name}`} className="preview-image"/> : <RoomImage style={preview} className="preview-image" />}
+      <p className="preview-caption">{connected ? 'Imagen privada de tu proyecto.' : preview === 'original' && project.photo.kind === 'upload' ? 'Fotografía guardada únicamente en este navegador.' : 'Imagen ilustrativa del mockup; no es una transformación generada de tu fotografía.'}</p>
     </Dialog>}
   </>
+}
+
+function RemoteStatus({project,remote,onNew}:{project:Project;remote:RemoteController;onNew:()=>void}) {
+  const job=activeJobs(project)[0]
+  const run=(action:'retry'|'confirm-bedroom')=>void remote.initial(action).catch(()=>{})
+  return <div className="conversation-scroll"><div className="conversation-content"><section className="remote-session-state" role="status"><Mark/>
+    {project.status==='needs_confirmation' ? <><h2>¿Esta foto muestra un dormitorio?</h2><p>No se pudo identificar con suficiente certeza. Confírmalo para preparar tus cinco propuestas.</p><button className="button primary" onClick={()=>run('confirm-bedroom')} disabled={remote.saving}>Sí, es un dormitorio</button><button className="button secondary" onClick={onNew}>Usar otra foto</button></>
+      : project.status==='rejected' ? <><h2>Necesitamos una foto de dormitorio.</h2><p>La imagen parece mostrar otro tipo de espacio. Elige una vista clara con la cama y la habitación visibles.</p><button className="button primary" onClick={onNew}>Subir otra fotografía</button></>
+      : project.status==='failed' ? <><h2>No se completaron las cinco propuestas.</h2><p>Tu fotografía está conservada. Puedes volver a intentar el lote completo.</p><button className="button primary" onClick={()=>run('retry')} disabled={remote.saving}>Reintentar propuestas</button></>
+      : <><h2>{project.status==='generating' ? 'Imaginando cinco posibilidades…' : 'Abriendo tu proyecto…'}</h2><p>El proceso puede tardar varios minutos. Puedes volver a este proyecto más tarde; el servidor conservará el trabajo.</p>{job && <p><span className="spinner"/> {job.status==='queued'?'En espera':'Preparando propuestas'} · {Math.max(0,Math.min(100,job.progress))}%</p>}</>}
+  </section>{project.photo.kind==='remote' && <div className="remote-original"><PhotoImage photo={project.photo}/><span>Fotografía original</span></div>}</div></div>
 }

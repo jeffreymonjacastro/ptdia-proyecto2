@@ -11,7 +11,7 @@ export async function inspectPhoto(file: File): Promise<void> {
   if (!valid) throw new Error('El archivo no contiene una imagen válida. Prueba con otra fotografía.')
 }
 
-export async function readPhoto(file: File): Promise<Photo> {
+export async function readPhoto(file: File): Promise<Extract<Photo, { kind: 'upload' }>> {
   await inspectPhoto(file)
   let bitmap: ImageBitmap
   try { bitmap = await createImageBitmap(file) }
