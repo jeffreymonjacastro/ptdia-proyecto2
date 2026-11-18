@@ -52,7 +52,7 @@ Build from the repository root. Use an untracked scratch output folder and repla
 uv build --wheel backend --out-dir /tmp/bedroom-wheel
 QWEN_REVISION=851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
 python backend/kaggle/build_bundle.py demo \
-  --wheel /tmp/bedroom-wheel/bedroom_backend-0.1.0-py3-none-any.whl \
+  --wheel /tmp/bedroom-wheel/bedroom_backend-0.1.1-py3-none-any.whl \
   --slug YOUR_KAGGLE_OWNER/ptdia-bedroom-backend-demo \
   --revision "$QWEN_REVISION" --output /tmp/bedroom-demo
 kaggle kernels push -p /tmp/bedroom-demo --no-run
@@ -82,6 +82,14 @@ Restart Kaggle, rerun all three cells, and update `NGROK_URL` to the URL printed
 The deployed verifier completed the authenticated flow, retrieved the completed session and summary after a Kaggle restart, and passed the two-account isolation check.
 
 Measure a representative session including at least one regeneration before opening shared testing. Use the actual image bytes and the planned number of testers to check the project's Storage and egress budget.
+
+## Summary excerpt correction in 0.1.1
+
+The model receives literal visual passages with introductions, Markdown headings, and list numbering removed. The renderer validates excerpts against the same passages. If a description contains only introductory text, the summary includes its recorded decision and reason without a visual claim. Saved summaries keep their existing text. Create a new session after updating the demo to verify the corrected selection.
+
+The local suite passes 34 backend tests, including 15 focused summary regressions. A [private two-T4 Qwen regression](https://www.kaggle.com/code/badexample/ptdia-bedroom-summary-regression) selected the lighting and ceiling observations from descriptions containing the reported preamble, preserved the rejection reason, and omitted the visual claim for a description consisting only of that preamble.
+
+To activate a new wheel in Kaggle, save the updated private notebook, stop the previous API cell, and start a fresh notebook session with T4 ×2. Run the three cells in order. Check that `/openapi.json` reports `info.version` as `0.1.1`, update the frontend's API origin if the tunnel changed, and create a new test project. The new summary should quote an actual visual detail, such as a change in lighting or materials.
 
 ## Post-grading purge
 

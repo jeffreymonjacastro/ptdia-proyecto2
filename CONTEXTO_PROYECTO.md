@@ -146,7 +146,7 @@ Reglas de adaptación:
 - `supabase.py`: Auth y bucket privado del servidor.
 - `runtime.py`, `models.py`: SDXL y `Qwen/Qwen3.5-4B` en dos T4.
 - `catalog.py`, `styles.json`: cinco LoRA y configuración fijada.
-- `summary.py`: Qwen elige extractos verificables; servidor construye español con decisiones/motivos.
+- `summary.py`: Qwen elige extractos verificables de pasajes visuales; se filtran introducciones y encabezados antes de seleccionar y validar citas. El servidor construye español con decisiones/motivos.
 - `migrations/001_bedroom.sql`, `tests/`, `kaggle/build_bundle.py`, `kaggle/verify_demo.py`: esquema, tests y despliegue.
 
 `GET /health` devuelve `{status:"ready"}` cuando está listo o 503. Revisar `/docs` y `/openapi.json` del dominio activo; `/docs` nunca forma parte de la URL base frontend.
@@ -165,6 +165,8 @@ Verificado durante esta integración:
 - Navegador contra FastAPI/Repository/Worker reales locales, con **Auth e inferencia controladas de prueba**: acceso A, carga, cinco slots, aceptación, rechazo Attic con motivo, Attic V2 conservando las otras cuatro, cinco aceptaciones, resumen del servidor con rechazo histórico, recarga y cuenta B sin proyectos de A. No es evidencia GPU ni Supabase remoto.
 - Revisión independiente de la integración completada; corregidos conflictos 409, carreras de historial/cuenta, borrado en estados iniciales, fallos/ACK del resumen, pausa confirmada, redirecciones privadas y borradores separados de aceptación/rechazo mediante 17 regresiones RED→GREEN. El modo sin configuración conserva la demo claramente etiquetada; un API incompleto nunca cae a demo.
 - Correcciones previas verificadas con pruebas que fallaron antes: clave ante ACK incompleto, job tras fallo de lectura posterior, imagen sin ruta, botones de imagen anidados y receptor nativo de `fetch` en navegador.
+
+Corrección posterior de resúmenes (backend 0.1.1): la selección y validación usan pasajes visuales sin preámbulos, títulos ni numeración Markdown. Si una descripción solo contiene una introducción, se conserva la decisión y el motivo sin añadir una observación visual. Los resúmenes ya guardados se conservan; el usuario puede borrar el proyecto de prueba antiguo. Verificación posterior: 34 pruebas backend y regresión Qwen real en dos T4 con descripciones sintéticas que contienen el preámbulo. Activar la versión nueva del notebook para comprobar el cambio en sesiones nuevas.
 
 Pendiente en infraestructura real cuando se rellene la configuración:
 

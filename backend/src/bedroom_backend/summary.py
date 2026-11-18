@@ -1,4 +1,43 @@
+import re
+
 from pydantic import BaseModel, ConfigDict, Field, TypeAdapter, ValidationError
+
+
+INTRODUCTION = re.compile(
+    r"^(?:aqu[ií] (?:tienes?|est[aá]n?)|a continuaci[oó]n|"
+    r"(?:estos|estas) son (?:los cambios|las diferencias)|"
+    r"(?:esta es|este es) (?:una? )?(?:descripci[oó]n|comparaci[oó]n|resumen)|"
+    r"(?:descripci[oó]n|comparaci[oó]n|resumen) de (?:los cambios|las diferencias))\b",
+    re.IGNORECASE,
+)
+VISUAL_LABELS = {
+    "iluminación", "iluminacion", "colores", "materiales", "muebles", "distribución", "distribucion",
+}
+
+
+def visual_passages(description):
+    """Keep literal source passages while removing introductions and Markdown labels."""
+    passages = []
+    content = re.sub(r"(?m)^[ \t]*(?:[-*+]|\d+[.)])[ \t]+", "", description)
+    for segment in re.split(r"\n+|(?<=[.!?])\s+", content):
+        passage = segment.strip()
+        if re.match(r"^#{1,6}\s", passage) or re.fullmatch(
+            r"\*\*(?:comparaci[oó]n|descripci[oó]n|resumen|cambios|an[aá]lisis|detalles)\b[^*.!?]*\*\*",
+            passage, re.IGNORECASE,
+        ):
+            continue
+        passage = passage.strip(" *_`")
+        if INTRODUCTION.match(passage):
+            passage = passage.partition(":")[2].strip(" *_`")
+        label, separator, content = passage.partition(":")
+        if separator and label.strip(" *_`").casefold() in VISUAL_LABELS:
+            passage = content.strip(" *_`")
+        if (
+            passage and passage.casefold() not in VISUAL_LABELS
+            and not passage.endswith(":") and not INTRODUCTION.match(passage)
+        ):
+            passages.append(passage)
+    return passages
 
 
 class InvalidSummary(ValueError):
@@ -25,8 +64,10 @@ def render_summary(entries, model_output, rejections=()):
     for item in entries:
         version_id = item["version_id"]
         excerpt = lookup[version_id]
-        if excerpt is not None and (not excerpt.strip() or excerpt not in item["description"]):
-            raise InvalidSummary("Summary quotes a description that was not recorded")
+        if excerpt is not None and (
+            not excerpt.strip() or not any(excerpt in passage for passage in visual_passages(item["description"]))
+        ):
+            raise InvalidSummary("Summary must quote recorded visual content")
         text = f'{item["label"]}, versión {item.get("number", 1)}.'
         if excerpt:
             text += f" Observación visual: «{excerpt}»."
