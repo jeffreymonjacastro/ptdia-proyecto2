@@ -237,6 +237,8 @@ class Worker:
                 result = render_summary(entries, self.models.summarize(entries), rejections)
                 break
             except InvalidSummary as error:
+                logger.warning("Summary validation failed for job %s, attempt %s (%s)",
+                               job["id"], attempt + 1, error.code)
                 if attempt == 1:
                     raise JobFailure("invalid_summary") from error
 

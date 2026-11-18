@@ -250,7 +250,7 @@ def test_delete_is_immediate_and_cleans_all_objects(sprint):
     assert client.get("/api/generations").json() == []
 
 
-def test_invalid_summary_and_stale_summary(sprint):
+def test_invalid_summary_and_stale_summary(sprint, caplog):
     client, worker, _, models, _ = sprint
     sid = generate(sprint)
     versions = [item["current_version_id"] for item in session(client, sid)["variations"]]
@@ -262,6 +262,8 @@ def test_invalid_summary_and_stale_summary(sprint):
     worker.run_once()
     assert client.get(f"/api/jobs/{first}").json()["error"] == "invalid_summary"
     assert session(client, sid)["summary"] is None
+    assert caplog.text.count("version_mismatch") == 2
+    assert "Motivo inventado" not in caplog.text
     models.invalid_summary = False
     models.before_summary = lambda: decide(client, sid, versions[0], "rejected")
     second = client.post(f"/api/generations/{sid}/summary", headers=key("second")).json()["job_id"]

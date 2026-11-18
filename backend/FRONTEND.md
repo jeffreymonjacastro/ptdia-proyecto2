@@ -36,6 +36,8 @@ For upload, use browser `FormData` and let `fetch` set its multipart `Content-Ty
 
 Backend 0.3.0 retains this public contract and adds private operational instrumentation. Operators export metrics through `bedroom-report`; there is no browser-facing statistics endpoint or additional frontend credential. Deployment requires migration 003 before readiness succeeds. See [METRICS.md](METRICS.md) for definitions and reporting scope.
 
+Backend 0.3.1 retains the same contract and corrects Qwen observation selection. Existing projects with a failed `invalid_summary` job can use the same summary endpoint with a new idempotency key after updating the backend. No new migration is required. Active-job GET polling reads progress; it does not invoke inference.
+
 There are still exactly five styles and `style_id: "luxury"` stays in position 1. Its default for new sessions is **Luxury UTEC**, the team's custom adapter. Multipart upload accepts optional `luxury_model: "custom" | "pretrained"` (default `custom`). Existing sessions keep their saved weights and settings.
 
 `PUT /api/generations/{id}/luxury-model` takes JSON `{"variant":"pretrained","version_id":"CURRENT-LUXURY-VERSION-UUID"}` and `Idempotency-Key`. Use `"custom"` to switch back. It returns `202 {session_id,job_id}` and queues only Luxury, or `200 {session_id,version_id,variant}` if that model is already current. A stale version, paused session or active job returns `409`; another owner's session returns `404`. Unknown enum values return `422`.

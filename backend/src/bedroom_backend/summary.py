@@ -41,7 +41,36 @@ def visual_passages(description):
 
 
 class InvalidSummary(ValueError):
-    pass
+    def __init__(self, message, *, code="invalid_output"):
+        super().__init__(message)
+        self.code = code
+
+
+class ObservationSelection(BaseModel):
+    model_config = ConfigDict(extra="forbid", strict=True)
+    version_id: str
+    observation_id: int | None = Field(ge=0)
+
+
+def selected_excerpts(inputs, model_output):
+    """Resolve model-selected IDs to saved text, never to model-written quotes."""
+    try:
+        selections = TypeAdapter(list[ObservationSelection]).validate_python(model_output)
+    except ValidationError as error:
+        raise InvalidSummary("Invalid observation selection format", code="invalid_selection") from error
+    lookup = {row["version_id"]: row["observations"] for row in inputs}
+    ids = [selection.version_id for selection in selections]
+    if len(set(ids)) != len(ids) or set(ids) != set(lookup):
+        raise InvalidSummary("Selection does not match the requested versions", code="version_mismatch")
+    excerpts = []
+    for selection in selections:
+        observations = lookup[selection.version_id]
+        index = selection.observation_id
+        if index is not None and index >= len(observations):
+            raise InvalidSummary("Selected observation does not exist", code="invalid_selection")
+        excerpts.append({"version_id": selection.version_id,
+                         "excerpt": observations[index]["text"] if index is not None else None})
+    return excerpts
 
 
 class Excerpt(BaseModel):
@@ -54,10 +83,10 @@ def render_summary(entries, model_output, rejections=()):
     try:
         excerpts = TypeAdapter(list[Excerpt]).validate_python(model_output)
     except ValidationError as error:
-        raise InvalidSummary("Invalid summary format") from error
+        raise InvalidSummary("Invalid summary format", code="invalid_format") from error
     lookup = {item.version_id: item.excerpt for item in excerpts}
     if len(lookup) != len(excerpts) or set(lookup) != {item["version_id"] for item in entries}:
-        raise InvalidSummary("Summary does not match the recorded versions")
+        raise InvalidSummary("Summary does not match the recorded versions", code="version_mismatch")
 
     accepted, rejected = [], []
     accepted_ids, rejected_ids = [], []
@@ -67,7 +96,7 @@ def render_summary(entries, model_output, rejections=()):
         if excerpt is not None and (
             not excerpt.strip() or not any(excerpt in passage for passage in visual_passages(item["description"]))
         ):
-            raise InvalidSummary("Summary must quote recorded visual content")
+            raise InvalidSummary("Summary must quote recorded visual content", code="ungrounded_excerpt")
         text = f'{item["label"]}, versión {item.get("number", 1)}.'
         if excerpt:
             text += f" Observación visual: «{excerpt}»."

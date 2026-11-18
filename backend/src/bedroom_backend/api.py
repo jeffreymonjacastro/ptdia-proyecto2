@@ -193,7 +193,7 @@ def respond(result):
 
 
 def create_app(repo, store, authenticate, catalog, models_ready, *, origins=(), lifespan=None):
-    app = FastAPI(title="PlanIA Bedroom Backend", version="0.3.0", lifespan=lifespan)
+    app = FastAPI(title="PlanIA Bedroom Backend", version="0.3.1", lifespan=lifespan)
     app.add_middleware(BodyLimit, limit=BODY_LIMIT)
     if origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(origins),

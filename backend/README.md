@@ -52,7 +52,7 @@ References for setup are the [Supabase connection guide](https://supabase.com/do
 
 The current launcher explicitly checks all six adapter filenames/hashes before loading GPU models. Both datasets must appear under Inputs. The saved version 6 metadata was remotely verified to list both datasets; if an older editor draft shows only the original, use **Add Input** to attach `badexample/plania-p2-luxury-utec-sdxl-lora` and restart the session. The backend scans mounted files under `/kaggle/input`; it does not download the LoRA as part of a code cell.
 
-**Latest saved demo: [version 7](https://www.kaggle.com/code/badexample/ptdia-bedroom-backend-demo), backend 0.3.0**, saved without running another GPU session. Its downloaded remote metadata contains both datasets and its embedded wheel was verified against the local build. Stop the old session, open/reload the latest saved notebook, select T4 ×2 and run the three code cells. The preflight prints `Verified 6 LoRA input files and hashes.`; `/openapi.json` must report `info.version: 0.3.0`. Existing editor drafts may require Add Input/restart even when the saved version is configured correctly. No new secrets are needed. Use `bedroom-report` from a separate trusted shell/cell to export measurements during shared testing.
+**Latest saved demo: version 8, backend 0.3.1**, including the summary selection correction described below. Its downloaded embedded wheel matches the GPU-tested package byte for byte, and both LoRA datasets are attached. Reload the latest saved [private demo notebook](https://www.kaggle.com/code/badexample/ptdia-bedroom-backend-demo), stop the old session, select T4 ×2 and run the three code cells. The preflight prints `Verified 6 LoRA input files and hashes.`; `/openapi.json` must report `info.version: 0.3.1`. Existing editor drafts may require Add Input/restart even when the saved version is configured correctly. No new secrets or migrations are needed beyond 001–003. Export measurements from a separate trusted shell, or interrupt the API cell after jobs finish and use a new notebook cell.
 
 Build from the repository root. Use an untracked scratch output folder and replace the owner with the Kaggle account running the notebook. Use Kaggle CLI 2.2.5 or newer for `--no-run`.
 
@@ -60,7 +60,7 @@ Build from the repository root. Use an untracked scratch output folder and repla
 uv build --wheel backend --out-dir /tmp/bedroom-wheel
 QWEN_REVISION=851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
 python backend/kaggle/build_bundle.py demo \
-  --wheel /tmp/bedroom-wheel/bedroom_backend-0.3.0-py3-none-any.whl \
+  --wheel /tmp/bedroom-wheel/bedroom_backend-0.3.1-py3-none-any.whl \
   --slug YOUR_KAGGLE_OWNER/ptdia-bedroom-backend-demo \
   --revision "$QWEN_REVISION" --output /tmp/bedroom-demo
 kaggle kernels push -p /tmp/bedroom-demo --no-run
@@ -91,13 +91,25 @@ The deployed verifier completed the authenticated flow, retrieved the completed 
 
 Measure a representative session including at least one regeneration before opening shared testing. Use the actual image bytes and the planned number of testers to check the project's Storage and egress budget.
 
-## Summary excerpt correction in 0.1.1
+## Summary selection correction in 0.3.1
+
+A real ten-version session reproduced `invalid_summary` on Qwen: it concatenated two separate visual observations into one excerpt. The renderer intentionally requires each excerpt to be contained within a single saved visual passage, so this output failed grounding even though both sentences appeared elsewhere in the description. Automatic retries repeated the failure.
+
+Qwen now selects one numbered observation per version, or null. The server validates exact per-batch version sets, strict integer/null selections and bounds, then copies that saved passage, capped at 300 characters. Final literal-grounding and history-revision checks still apply. Decisions and reasons still come directly from saved records. The public summary response is unchanged. Worker warnings include only the job ID, attempt and a safe diagnostic code such as `ungrounded_excerpt`, `version_mismatch`, `invalid_selection` or `invalid_json`; they do not log descriptions, feedback or raw model output.
+
+The private GPU diagnostic reproduced the old failure in version 2 and passed the same ten-version input with backend 0.3.1 in version 3. All ten IDs and excerpts validated. Aggregate evidence is in [summary_selection_evidence.json](kaggle/summary_selection_evidence.json); private inputs/responses are not committed. Local checks passed 66 backend tests against disposable PostgreSQL, 92 frontend tests and the frontend production build.
+
+After activating 0.3.1, reopen the existing failed project and choose **Reintentar resumen**. Keep its accepted versions and history; no new upload or regeneration is required. Existing saved summaries are unchanged.
+
+While a job is active, the current frontend polls after each completed cycle plus 2.5 seconds: one `GET /api/jobs/{id}` per active job and one `GET /api/generations/{id}`. These requests read progress and stop when no jobs remain active; they do not enqueue generation or Qwen work. The session response already includes jobs, so consolidating these reads is a future optimization, not a cause of this validation failure.
+
+## Earlier summary excerpt correction in 0.1.1
 
 The model receives literal visual passages with introductions, Markdown headings, and list numbering removed. The renderer validates excerpts against the same passages. If a description contains only introductory text, the summary includes its recorded decision and reason without a visual claim. Saved summaries keep their existing text. Create a new session after updating the demo to verify the corrected selection.
 
 The local suite passes 34 backend tests, including 15 focused summary regressions. A [private two-T4 Qwen regression](https://www.kaggle.com/code/badexample/ptdia-bedroom-summary-regression) selected the lighting and ceiling observations from descriptions containing the reported preamble, preserved the rejection reason, and omitted the visual claim for a description consisting only of that preamble.
 
-To activate a new wheel in Kaggle, save the updated private notebook, stop the previous API cell, and start a fresh notebook session with T4 ×2. Run the three cells in order. Check that `/openapi.json` reports `info.version` as `0.3.0`, update the frontend's API origin if the tunnel changed, and create a new test project. The new summary should quote an actual visual detail, such as a change in lighting or materials.
+To activate a new wheel in Kaggle, save the updated private notebook, stop the previous API cell, and start a fresh notebook session with T4 ×2. Run the three cells in order. Check that `/openapi.json` reports `info.version` as `0.3.1` and update the frontend's API origin if the tunnel changed. An existing failed summary can be retried without recreating its project.
 
 ## Post-grading purge
 
@@ -119,7 +131,7 @@ Switch jobs pin their requested profile; their published image and active profil
 
 **Verified release:** [Luxury-choice smoke v1](https://www.kaggle.com/code/badexample/plania-bedroom-luxury-choice-smoke) completed on two T4s in 591.0 seconds, including initialization, five styles, pretrained/custom Luxury checks, regeneration, comparisons and Spanish summary. The custom hash and original hash matched the catalog, with one active adapter per generation. Custom Luxury generation took 18.8–21.2 s at 25 steps (9.0 GiB peak allocated); original Luxury took 32.8 s at 35 steps (9.41 GiB). The different step counts mean these are runtime measurements of the presets, not a controlled adapter-speed comparison. [Compact evidence](kaggle/luxury_choice_smoke_evidence.json).
 
-The initial Luxury-choice delivery saved the [private demo notebook](https://www.kaggle.com/code/badexample/ptdia-bedroom-backend-demo) as **version 6**, with backend **0.2.0** and both datasets. The current reporting release is version 7/backend 0.3.0 as described above. New projects default to Luxury UTEC; verify the selector switches only Luxury and shows a pending V2 before accepting it and requesting the new summary.
+The initial Luxury-choice delivery saved the [private demo notebook](https://www.kaggle.com/code/badexample/ptdia-bedroom-backend-demo) as **version 6**, with backend **0.2.0** and both datasets. Reporting was introduced in version 7/backend 0.3.0; the current package is 0.3.1 as described above. New projects default to Luxury UTEC; verify the selector switches only Luxury and shows a pending V2 before accepting it and requesting the new summary.
 
 Local release checks: 41 backend tests with disposable PostgreSQL, 92 frontend tests, production build, old frontend fixture validation against SessionDetail, and browser→FastAPI→worker→PostgreSQL model-switch flow with controlled Auth/inference. The GPU smoke uses the identical final inference/catalog files; later service/UI review fixes were verified locally. A live authenticated Supabase/Kaggle API restart flow remains the operator's next demo check.
 
