@@ -8,6 +8,7 @@ from psycopg.types.json import Jsonb
 from .catalog import effective_prompt
 from .repository import all_rows
 from .summary import InvalidSummary, render_summary
+from .metrics import sanitize_metric
 
 logger = logging.getLogger(__name__)
 
@@ -25,6 +26,19 @@ class Worker:
         self.repo = repo
         self.store = store
         self.models = models
+        self.job_metrics = []
+        self.metrics_truncated = False
+
+    def record_metric(self, value):
+        metric = sanitize_metric(value)
+        if metric is not None:
+            if len(self.job_metrics) < 64:
+                self.job_metrics.append(metric)
+            else:
+                self.metrics_truncated = True
+
+    def close_job(self, conn, job, status="succeeded", error=None):
+        self.repo.close_job(conn, job, status, error, metrics=self.job_metrics, metrics_truncated=self.metrics_truncated)
 
     def serve(self, stop):
         while not stop.is_set():
@@ -45,6 +59,17 @@ class Worker:
             job = self.repo.claim(only_delete=only_delete)
             if job is None:
                 return False
+            self.job_metrics = []
+            self.metrics_truncated = False
+            previous_sink = None
+            sink_installed = False
+            try:
+                if self.models is not None and hasattr(self.models, "metric_sink"):
+                    previous_sink = self.models.metric_sink
+                    self.models.metric_sink = self.record_metric
+                    sink_installed = True
+            except Exception as error:
+                logger.warning("Optional metric collector unavailable (%s)", type(error).__name__)
             stop = Event()
             thread = Thread(target=self.keep_lease, args=(job, stop), daemon=True)
             thread.start()
@@ -58,6 +83,11 @@ class Worker:
                 logger.error("Job %s failed (%s)", job["id"], type(error).__name__)
                 self.fail(job, "processing_failed")
             finally:
+                if sink_installed:
+                    try:
+                        self.models.metric_sink = previous_sink
+                    except Exception as error:
+                        logger.warning("Optional metric collector cleanup failed (%s)", type(error).__name__)
                 stop.set()
                 thread.join()
                 self.clean_staged()
@@ -98,7 +128,7 @@ class Worker:
                 return
             if job["kind"] == "initial":
                 conn.execute("UPDATE bedroom.sessions SET status = 'failed' WHERE id = %s", (session["id"],))
-            self.repo.close_job(conn, job, "failed", code)
+            self.close_job(conn, job, "failed", code)
 
     def generate(self, job):
         with self.repo.transaction() as conn:
@@ -132,7 +162,7 @@ class Worker:
                 else:
                     status = "rejected" if classification == "other" else "needs_confirmation"
                     conn.execute("UPDATE bedroom.sessions SET status = %s WHERE id = %s", (status, session["id"]))
-                    self.repo.close_job(conn, job, "failed" if classification == "other" else "succeeded",
+                    self.close_job(conn, job, "failed" if classification == "other" else "succeeded",
                                         "not_a_bedroom" if classification == "other" else None)
                     return
 
@@ -153,7 +183,7 @@ class Worker:
                 self.repo.insert_version(conn, session["id"], result)
             conn.execute("UPDATE bedroom.sessions SET status = 'ready', revision = revision + 1 WHERE id = %s",
                          (session["id"],))
-            self.repo.close_job(conn, job)
+            self.close_job(conn, job)
 
     def render(self, job, session, slot, original):
         profile = slot["profile"]
@@ -218,7 +248,7 @@ class Worker:
             conn.execute("INSERT INTO bedroom.summaries (session_id, revision, result) VALUES (%s, %s, %s)",
                          (session["id"], session["revision"], Jsonb(result)))
             conn.execute("UPDATE bedroom.sessions SET status = 'completed' WHERE id = %s", (session["id"],))
-            self.repo.close_job(conn, job)
+            self.close_job(conn, job)
 
     def clean_staged(self):
         with self.repo.transaction() as conn:

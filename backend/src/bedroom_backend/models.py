@@ -1,6 +1,7 @@
 from hashlib import file_digest
 from io import BytesIO
 import json
+import logging
 from pathlib import Path
 from time import perf_counter
 
@@ -11,6 +12,19 @@ from .summary import InvalidSummary, visual_passages
 SDXL = "stabilityai/stable-diffusion-xl-base-1.0"
 SDXL_REVISION = "462165984030d82259a11f4367a4eed129e94a7b"
 QWEN = "Qwen/Qwen3.5-4B"
+logger = logging.getLogger(__name__)
+
+
+def resolve_weight(root, profile):
+    matches = sorted(Path(root).rglob(profile["weights"]))
+    if len(matches) != 1:
+        raise RuntimeError(f"Expected one Kaggle input named {profile['weights']}. Use Add Input to attach both LoRA datasets, then restart the session.")
+    path = matches[0]
+    with path.open("rb") as source:
+        digest = file_digest(source, "sha256").hexdigest()
+    if profile.get("sha256") and digest != profile["sha256"]:
+        raise RuntimeError(f"LoRA hash mismatch for {profile['id']}")
+    return path, digest
 
 
 def open_rgb(data):
@@ -31,6 +45,7 @@ class KaggleModels:
         self.qwen_revision = qwen_revision
         self.files = {}
         self.metrics = []
+        self.metric_sink = None
         self.active = None
         self.pipeline = StableDiffusionXLImg2ImgPipeline.from_pretrained(
             SDXL, revision=SDXL_REVISION, dtype=torch.float16, variant="fp16",
@@ -47,16 +62,18 @@ class KaggleModels:
         expected = profile.get("sha256")
         cache_key = (profile["weights"], expected)
         if cache_key not in self.files:
-            matches = sorted(self.lora_root.rglob(profile["weights"]))
-            if len(matches) != 1:
-                raise RuntimeError(f"Expected one Kaggle input named {profile['weights']}")
-            path = matches[0]
-            with path.open("rb") as source:
-                digest = file_digest(source, "sha256").hexdigest()
-            if expected and digest != expected:
-                raise RuntimeError(f"LoRA hash mismatch for {profile['id']}")
-            self.files[cache_key] = path, digest
+            self.files[cache_key] = resolve_weight(self.lora_root, profile)
         return self.files[cache_key]
+
+    def record_metric(self, metric):
+        self.metrics.append(metric)
+        if len(self.metrics) > 500:
+            del self.metrics[:100]
+        if self.metric_sink is not None:
+            try:
+                self.metric_sink(metric)
+            except Exception as error:
+                logger.warning("Optional inference metric was not collected (%s)", type(error).__name__)
 
     def pin_profiles(self, catalog):
         return tuple({**profile, "sha256": self.weight(profile)[1],
@@ -91,9 +108,11 @@ class KaggleModels:
             buffer = BytesIO()
             generated.save(buffer, "PNG")
             torch.cuda.synchronize(0)
-            self.metrics.append({
+            self.record_metric({
                 "stage": "generation", "style": profile["id"], "lora_sha256": digest,
                 "active_adapters": self.pipeline.get_active_adapters(),
+                "variant": profile.get("variant"),
+                "settings": {key: profile[key] for key in ("steps", "strength", "scale", "guidance")},
                 "seconds": round(perf_counter() - start, 3), "peak_bytes": torch.cuda.max_memory_allocated(0),
             })
             return buffer.getvalue()
@@ -118,10 +137,8 @@ class KaggleModels:
         tokens = output[:, inputs["input_ids"].shape[1]:]
         text = self.processor.batch_decode(tokens, skip_special_tokens=True)[0].strip()
         torch.cuda.synchronize(1)
-        self.metrics.append({"stage": stage, "seconds": round(perf_counter() - start, 3),
+        self.record_metric({"stage": stage, "seconds": round(perf_counter() - start, 3),
                              "peak_bytes": torch.cuda.max_memory_allocated(1)})
-        if len(self.metrics) > 500:
-            del self.metrics[:100]
         return text
 
     def classify(self, original):

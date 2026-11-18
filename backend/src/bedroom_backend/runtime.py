@@ -8,7 +8,7 @@ import uvicorn
 
 from .api import create_app
 from .catalog import load_catalog
-from .models import KaggleModels
+from .models import KaggleModels, resolve_weight
 from .repository import Repository
 from .supabase import SupabaseAuth, SupabaseStorage
 from .worker import Worker
@@ -31,10 +31,21 @@ def check_persistence():
             raise RuntimeError("The bedroom image bucket must be private")
 
 
+def check_lora_inputs():
+    catalog = load_catalog(os.getenv("BEDROOM_CATALOG"))
+    root = os.getenv("BEDROOM_LORA_ROOT", "/kaggle/input")
+    profiles = [option for profile in catalog for option in (profile, *profile.get("variants", {}).values())]
+    unique = {(profile["weights"], profile.get("sha256")): profile for profile in profiles}
+    for profile in unique.values():
+        resolve_weight(root, profile)
+    return len(unique)
+
+
 def create_runtime(*, tunnel=False):
     # Diffusers can quote truncated prompt text in warnings.
     logging.getLogger("diffusers").setLevel(logging.ERROR)
     catalog = load_catalog(os.getenv("BEDROOM_CATALOG"))
+    check_lora_inputs()
     models = KaggleModels(os.getenv("BEDROOM_LORA_ROOT", "/kaggle/input"),
                           os.environ["QWEN_REVISION"], os.getenv("HF_HOME"))
     catalog = models.pin_profiles(catalog)

@@ -24,6 +24,10 @@ Wait for `pg_isready` to report that the database is accepting connections befor
 
 ## Set up shared persistence
 
+Backend **0.3.0** additionally requires [migration 003](migrations/003_operational_metrics.sql) after 001/002. It persists job timing/origin/retry and bounded inference metrics. See [operational and regeneration reporting](METRICS.md) for CSV/JSON export commands and exact denominators, and the [limitations register](LIMITATIONS.md) for evidence/management of known restrictions.
+
+The shared project already has migration 003 applied, with backend read/update privileges verified. Earlier jobs retain unknown starts/legacy origins; new measurements begin when running 0.3.0. Local release checks passed: **54 backend tests**, **92 frontend tests**, production build, and the installed wheel's `bedroom-report` JSON/CSV exports against a controlled local cohort. These test counts/fixtures are not a user study.
+
 1. Create or select the **team-owned Supabase project** with the Data API and automatic table exposure disabled. Apply [migration 001](migrations/001_bedroom.sql) then [migration 002](migrations/002_luxury_model_choice.sql) as the project database owner. Use a separate database login for the running backend. The statements below assume a fresh project and run in `psql` as the database owner. If the role is already provisioned, run only `\password bedroom_app`. Set the password through the prompt and store it in the team's password manager.
 
    ```sql
@@ -46,13 +50,17 @@ References for setup are the [Supabase connection guide](https://supabase.com/do
 
 ## Package and run on Kaggle
 
+The current launcher explicitly checks all six adapter filenames/hashes before loading GPU models. Both datasets must appear under Inputs. The saved version 6 metadata was remotely verified to list both datasets; if an older editor draft shows only the original, use **Add Input** to attach `badexample/plania-p2-luxury-utec-sdxl-lora` and restart the session. The backend scans mounted files under `/kaggle/input`; it does not download the LoRA as part of a code cell.
+
+**Latest saved demo: [version 7](https://www.kaggle.com/code/badexample/ptdia-bedroom-backend-demo), backend 0.3.0**, saved without running another GPU session. Its downloaded remote metadata contains both datasets and its embedded wheel was verified against the local build. Stop the old session, open/reload the latest saved notebook, select T4 ×2 and run the three code cells. The preflight prints `Verified 6 LoRA input files and hashes.`; `/openapi.json` must report `info.version: 0.3.0`. Existing editor drafts may require Add Input/restart even when the saved version is configured correctly. No new secrets are needed. Use `bedroom-report` from a separate trusted shell/cell to export measurements during shared testing.
+
 Build from the repository root. Use an untracked scratch output folder and replace the owner with the Kaggle account running the notebook. Use Kaggle CLI 2.2.5 or newer for `--no-run`.
 
 ```sh
 uv build --wheel backend --out-dir /tmp/bedroom-wheel
 QWEN_REVISION=851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
 python backend/kaggle/build_bundle.py demo \
-  --wheel /tmp/bedroom-wheel/bedroom_backend-0.2.0-py3-none-any.whl \
+  --wheel /tmp/bedroom-wheel/bedroom_backend-0.3.0-py3-none-any.whl \
   --slug YOUR_KAGGLE_OWNER/ptdia-bedroom-backend-demo \
   --revision "$QWEN_REVISION" --output /tmp/bedroom-demo
 kaggle kernels push -p /tmp/bedroom-demo --no-run
@@ -89,7 +97,7 @@ The model receives literal visual passages with introductions, Markdown headings
 
 The local suite passes 34 backend tests, including 15 focused summary regressions. A [private two-T4 Qwen regression](https://www.kaggle.com/code/badexample/ptdia-bedroom-summary-regression) selected the lighting and ceiling observations from descriptions containing the reported preamble, preserved the rejection reason, and omitted the visual claim for a description consisting only of that preamble.
 
-To activate a new wheel in Kaggle, save the updated private notebook, stop the previous API cell, and start a fresh notebook session with T4 ×2. Run the three cells in order. Check that `/openapi.json` reports `info.version` as `0.2.0`, update the frontend's API origin if the tunnel changed, and create a new test project. The new summary should quote an actual visual detail, such as a change in lighting or materials.
+To activate a new wheel in Kaggle, save the updated private notebook, stop the previous API cell, and start a fresh notebook session with T4 ×2. Run the three cells in order. Check that `/openapi.json` reports `info.version` as `0.3.0`, update the frontend's API origin if the tunnel changed, and create a new test project. The new summary should quote an actual visual detail, such as a change in lighting or materials.
 
 ## Post-grading purge
 
@@ -111,7 +119,7 @@ Switch jobs pin their requested profile; their published image and active profil
 
 **Verified release:** [Luxury-choice smoke v1](https://www.kaggle.com/code/badexample/plania-bedroom-luxury-choice-smoke) completed on two T4s in 591.0 seconds, including initialization, five styles, pretrained/custom Luxury checks, regeneration, comparisons and Spanish summary. The custom hash and original hash matched the catalog, with one active adapter per generation. Custom Luxury generation took 18.8–21.2 s at 25 steps (9.0 GiB peak allocated); original Luxury took 32.8 s at 35 steps (9.41 GiB). The different step counts mean these are runtime measurements of the presets, not a controlled adapter-speed comparison. [Compact evidence](kaggle/luxury_choice_smoke_evidence.json).
 
-The existing [private demo notebook](https://www.kaggle.com/code/badexample/ptdia-bedroom-backend-demo) is saved as **version 6**, with backend **0.2.0** and both datasets, **without starting a demo GPU run**. Stop the previous interactive session, reload the latest saved notebook, start a fresh T4 ×2 session and run its three code cells. Check `/openapi.json` → `info.version` is `0.2.0`; update the frontend origin if ngrok changed. No new secrets are needed. New projects default to Luxury UTEC; verify the selector switches only Luxury and shows a pending V2 before accepting it and requesting the new summary.
+The initial Luxury-choice delivery saved the [private demo notebook](https://www.kaggle.com/code/badexample/ptdia-bedroom-backend-demo) as **version 6**, with backend **0.2.0** and both datasets. The current reporting release is version 7/backend 0.3.0 as described above. New projects default to Luxury UTEC; verify the selector switches only Luxury and shows a pending V2 before accepting it and requesting the new summary.
 
 Local release checks: 41 backend tests with disposable PostgreSQL, 92 frontend tests, production build, old frontend fixture validation against SessionDetail, and browser→FastAPI→worker→PostgreSQL model-switch flow with controlled Auth/inference. The GPU smoke uses the identical final inference/catalog files; later service/UI review fixes were verified locally. A live authenticated Supabase/Kaggle API restart flow remains the operator's next demo check.
 

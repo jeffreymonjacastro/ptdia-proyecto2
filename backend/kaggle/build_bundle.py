@@ -70,7 +70,8 @@ if 'sslmode=verify-full' in os.environ['BEDROOM_DATABASE_URL']:
     os.environ['PGSSLROOTCERT'] = str(ca)
 os.environ.setdefault('BEDROOM_ORIGINS', 'http://localhost:5173')
 
-from bedroom_backend.runtime import check_persistence
+from bedroom_backend.runtime import check_lora_inputs, check_persistence
+print(f'Verified {check_lora_inputs()} LoRA input files and hashes.')
 check_persistence()
 print('PostgreSQL and the private bucket are reachable.')
 """
@@ -83,7 +84,7 @@ await serve_kaggle()
             "cells": [
                 {"cell_type": "markdown", "id": "setup", "metadata": {}, "source": [
                     "# Bedroom backend\n",
-                    "Select two T4 GPUs and enable Internet. Attach the LoRA dataset and enable the secrets listed in the runbook.\n",
+                    "Select two T4 GPUs and enable Internet. Under Add Input, attach BOTH datasets: `jeffreyamc/plania-p2-jjs-luxury-bedroom-xl` and `badexample/plania-p2-luxury-utec-sdxl-lora`. They must appear in the Inputs sidebar; the backend reads their files under `/kaggle/input`. Reloading an older editor draft can retain old inputs. Restart the session after adding an input. Enable the secrets listed in the runbook.\n",
                 ]},
                 {"cell_type": "code", "id": "install", "metadata": {}, "execution_count": None,
                  "outputs": [], "source": installer.splitlines(keepends=True)},

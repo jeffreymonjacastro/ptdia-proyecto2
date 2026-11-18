@@ -91,7 +91,7 @@ class Sessions:
                 except Exception as error:
                     raise Problem(503, "storage_unavailable") from error
                 conn.execute("UPDATE bedroom.sessions SET status = 'generating' WHERE id = %s", (session_id,))
-                conn.execute("INSERT INTO bedroom.jobs (id, session_id, kind) VALUES (%s, %s, 'initial')",
+                conn.execute("INSERT INTO bedroom.jobs (id, session_id, kind, origin) VALUES (%s, %s, 'initial', 'upload')",
                              (result["job_id"], session_id))
         return 202, result
 
@@ -190,7 +190,8 @@ class Sessions:
         session_id = row["id"]
         conn.execute("UPDATE bedroom.sessions SET status = 'generating', bedroom_confirmed = %s WHERE id = %s",
                      (confirm or row["bedroom_confirmed"], session_id))
-        return 202, job_response(session_id, self.repo.enqueue(conn, session_id, "initial"))
+        previous = one(conn, "SELECT id FROM bedroom.jobs WHERE session_id = %s AND kind = 'initial' ORDER BY created_at DESC, id DESC LIMIT 1", (session_id,))
+        return 202, job_response(session_id, self.repo.enqueue(conn, session_id, "initial", origin="confirmation" if confirm else "initial_retry", retry_of=previous["id"] if previous else None))
 
     @staticmethod
     def pending(conn, session_id, kind=None, position=None):
@@ -283,7 +284,7 @@ class Sessions:
         if not latest or latest["status"] != "failed" or (latest["decision"] != "rejected" and not latest["requested_profile"]):
             raise Problem(409, "no_failed_regeneration")
         job_id = self.repo.enqueue(conn, session_id, "regenerate", position=position,
-                                   version_id=latest["target_version_id"], feedback=latest["feedback"], requested_profile=latest["requested_profile"])
+                                   version_id=latest["target_version_id"], feedback=latest["feedback"], requested_profile=latest["requested_profile"], origin="regeneration_retry", retry_of=latest["id"])
         return 202, job_response(session_id, job_id)
 
     def summarize(self, conn, row):

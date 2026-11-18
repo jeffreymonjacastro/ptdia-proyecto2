@@ -47,7 +47,7 @@ class Repository:
     def ready(self):
         with self.transaction() as conn:
             one(conn, "SELECT profile_options FROM bedroom.slots LIMIT 1")
-            one(conn, "SELECT requested_profile FROM bedroom.jobs LIMIT 1")
+            one(conn, "SELECT requested_profile, origin, started_at, finished_at, metrics FROM bedroom.jobs LIMIT 1")
         return True
 
     def claim(self, *, only_delete=False):
@@ -64,6 +64,7 @@ class Repository:
                     FOR UPDATE OF j SKIP LOCKED LIMIT 1
                 )
                 UPDATE bedroom.jobs j SET status = 'running', attempts = attempts + 1,
+                    started_at = CASE WHEN attempts = 0 THEN clock_timestamp() ELSE started_at END, finished_at = NULL,
                     progress = 0, lease_token = %s, lease_until = now() + interval '2 minutes'
                 FROM candidate WHERE j.id = candidate.id RETURNING j.*
             """, (only_delete, uuid4()))
@@ -77,12 +78,14 @@ class Repository:
             """, (job["id"], job["lease_token"])))
 
     @staticmethod
-    def enqueue(conn, session_id, kind, *, position=None, version_id=None, revision=None, feedback=None, requested_profile=None):
+    def enqueue(conn, session_id, kind, *, position=None, version_id=None, revision=None, feedback=None, requested_profile=None, origin=None, retry_of=None):
         job_id = uuid4()
+        if origin is None:
+            origin = {"initial":"upload", "regenerate":"model_switch" if requested_profile else "rejection"}.get(kind, kind)
         conn.execute("""
-            INSERT INTO bedroom.jobs (id, session_id, kind, position, target_version_id, history_revision, feedback, requested_profile)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-        """, (job_id, session_id, kind, position, version_id, revision, feedback, Jsonb(requested_profile) if requested_profile else None))
+            INSERT INTO bedroom.jobs (id, session_id, kind, position, target_version_id, history_revision, feedback, requested_profile, origin, retry_of)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (job_id, session_id, kind, position, version_id, revision, feedback, Jsonb(requested_profile) if requested_profile else None, origin, retry_of))
         return job_id
 
     @staticmethod
@@ -97,13 +100,14 @@ class Repository:
         return None
 
     @staticmethod
-    def close_job(conn, job, status="succeeded", error=None):
+    def close_job(conn, job, status="succeeded", error=None, *, metrics=None, metrics_truncated=False):
         conn.execute("""
             UPDATE bedroom.jobs SET status = %s, error = %s,
+                finished_at = clock_timestamp(), metrics = COALESCE(%s, metrics), metrics_truncated = %s,
                 lease_until = NULL, lease_token = NULL,
                 progress = CASE WHEN %s = 'succeeded' THEN 100 ELSE progress END
             WHERE id = %s AND lease_token = %s
-        """, (status, error, status, job["id"], job["lease_token"]))
+        """, (status, error, Jsonb(metrics) if metrics is not None else None, metrics_truncated, status, job["id"], job["lease_token"]))
 
     @staticmethod
     def snapshot_versions(conn, session_id):
