@@ -1,0 +1,27 @@
+[build-system]
+requires = ["hatchling==1.30.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "bedroom-backend"
+version = "0.3.1"
+requires-python = ">=3.11"
+dependencies = [
+  "fastapi==0.162.5", "httpx==0.28.1", "Pillow==13.0.0",
+  "psycopg[binary,pool]==3.3.8", "python-multipart==0.0.33", "uvicorn==0.54.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest==9.2.0", "httpx2==2.16.0"]
+gpu = ["diffusers==0.42.1", "peft==0.21.2", "transformers==5.20.2", "accelerate==1.15.0", "safetensors", "pyngrok"]
+
+[project.scripts]
+bedroom-backend = "bedroom_backend.runtime:main"
+bedroom-purge = "bedroom_backend.admin:main"
+bedroom-report = "bedroom_backend.reporting:main"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/bedroom_backend"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

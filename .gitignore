@@ -3,6 +3,9 @@ __pycache__/
 *.py[codz]
 *$py.class
 
+# macOS
+.DS_Store
+
 # C extensions
 *.so
 
@@ -221,3 +224,25 @@ __marimo__/
 
 # Civitai
 *.safetensors
+# Configuración local del frontend (no versionar valores de conexión)
+frontend/.env.local
+frontend/.env.*.local
+
+# Configuración local y dependencias; conservar las plantillas públicas
+.env.*
+!.env.example
+!.env.*.example
+node_modules/
+
+# Pesos y archivos de entrega recibidos localmente
+/pesos_aporte_fabryzzio/
+
+# Archivos temporales de documentos y presentaciones
+tmp/
+.codex-finalizer/
+~$*
+.~lock.*#
+
+# Material de presentación y exportaciones locales (no versionar)
+/docs/presentacion/
+/output/

@@ -1,0 +1,51 @@
+{
+  "date": "2026-11-18",
+  "kernel": "badexample/ptdia-bedroom-summary-debug",
+  "privacy": "Private input descriptions, version IDs and raw model outputs are excluded from this repository artifact.",
+  "qwen_model": "Qwen/Qwen3.5-4B",
+  "qwen_revision": "851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a",
+  "entries": 10,
+  "accepted_versions": 5,
+  "historical_rejected_versions": 5,
+  "baseline": {
+    "kernel_version": 2,
+    "backend_version": "0.3.0",
+    "result": "invalid",
+    "validation": "ungrounded_excerpt",
+    "invalid_excerpts": 1,
+    "all_version_ids_matched": true,
+    "metrics": [
+      {
+        "stage": "summary",
+        "seconds": 44.413,
+        "peak_bytes": 10141197824
+      },
+      {
+        "stage": "summary",
+        "seconds": 9.046,
+        "peak_bytes": 9343630336
+      }
+    ]
+  },
+  "fixed": {
+    "kernel_version": 3,
+    "backend_version": "0.3.1",
+    "result": "valid",
+    "all_version_ids_matched": true,
+    "all_excerpts_grounded": true,
+    "metrics": [
+      {
+        "stage": "summary",
+        "seconds": 29.801,
+        "peak_bytes": 10799045120
+      },
+      {
+        "stage": "summary",
+        "seconds": 6.324,
+        "peak_bytes": 9412835328
+      }
+    ],
+    "wheel_sha256": "865cf85cb5ce6d3ca11110b235d3a6b91d94c9a41dfe65730a8031ff7ab14882"
+  },
+  "scope": "Model adapter plus final summary renderer on the same saved input. No live session was modified; interactive API retry after deployment remains an operator check. One diagnostic comparison is not a latency benchmark."
+}

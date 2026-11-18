@@ -14,7 +14,7 @@ sequenceDiagram
     A->>D: Original, versiones y metadatos
     A-->>F: Cinco propuestas identificadas
     loop Evaluar cada variacion hasta aceptarla o pausar
-        U->>F: Decision y motivo opcional
+        U->>F: Decision y motivo (obligatorio al rechazar)
         F->>A: ID de version y decision
         A->>D: Registrar decision
         alt Version rechazada

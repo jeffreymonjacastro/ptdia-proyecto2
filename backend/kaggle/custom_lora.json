@@ -1,0 +1,17 @@
+{
+  "dataset": "badexample/plania-p2-luxury-utec-sdxl-lora",
+  "dataset_version": 1,
+  "public": true,
+  "filename": "Luxury_UTEC_r8_step300.safetensors",
+  "bytes": 46615272,
+  "sha256": "aad41fa2c1ab8a7b044a9e3acebb8651f562baa658f72262a99d242e4b5cc05b",
+  "base_model": "stabilityai/stable-diffusion-xl-base-1.0",
+  "base_revision": "462165984030d82259a11f4367a4eed129e94a7b",
+  "trigger": "luxbedstyle",
+  "training_kernel": "fabryzziomezatorres/bedroom-sdxl-luxury-lora-train-v1",
+  "training_kernel_version": 2,
+  "source_branch_commit": "78dd4678e0416bf965b937058eb2f8592648fe84",
+  "training_photos": 113,
+  "optimizer_updates": 300,
+  "license": "CreativeML Open RAIL++-M (full text in dataset description)"
+}
