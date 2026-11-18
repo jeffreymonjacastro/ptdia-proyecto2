@@ -28,7 +28,7 @@ Historial anterior: `7c46eea` implementó la demo, `805a83a` corrigió persisten
 
 ## 3. Producto y decisiones que conservar
 
-La aplicación **Estudio** ayuda a un diseñador a explorar dormitorios con su cliente. Interfaz oscura con proyectos en el lateral, original como adjunto, cinco tarjetas (tres arriba y dos abajo en escritorio), historial y adaptación móvil.
+La aplicación **4to estudio** ayuda a un diseñador a explorar dormitorios con su cliente. Interfaz oscura con proyectos en el lateral, original como adjunto, cinco tarjetas (tres arriba y dos abajo en escritorio), historial y adaptación móvil. El nombre aparece en la marca del workspace, en la pantalla de acceso y en el título del navegador.
 
 - Alcance exclusivo de **habitaciones / dormitorios**.
 - Lote completo de exactamente cinco posiciones: `1 luxury` (Luxury), `2 japanese` (Japanese), `3 neo-classic` (Neo Classic), `4 attic` (Attic), `5 cyberpunk` (Cyberpunk).

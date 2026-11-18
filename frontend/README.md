@@ -1,4 +1,4 @@
-# Estudio · Frontend de dormitorios
+# 4to estudio · Frontend de dormitorios
 
 React + TypeScript + Vite + Tailwind CSS. Conserva el diseño de [plan3](../blueprint/plan/plan3.md) y el [mockup](../blueprint/design/chat-dormitorios-v1.png), con dos modos separados:
 

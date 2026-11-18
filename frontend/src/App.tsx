@@ -66,7 +66,7 @@ export default function App({ remote }: { remote?: RemoteController }) {
   return <div className="studio-app">
     {sidebarOpen && <button className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Cerrar proyectos" />}
     <aside ref={sidebar} className={`sidebar ${sidebarOpen ? 'open' : ''}`} aria-label="Proyectos de clientes" inert={mobile && !sidebarOpen} role={mobile && sidebarOpen ? 'dialog' : undefined} aria-modal={mobile && sidebarOpen ? true : undefined}>
-      <a className="brand" href="./" aria-label="Estudio, inicio"><span className="brand-icon"><Icon name="bed" size={29} /></span><div>estudio<span>ESPACIOS CON INTENCIÓN</span></div></a>
+      <a className="brand" href="./" aria-label="4to estudio, inicio"><span className="brand-icon"><Icon name="bed" size={29} /></span><div>4to estudio<span>ESPACIOS CON INTENCIÓN</span></div></a>
       <button className="sidebar-close icon-button" onClick={() => setSidebarOpen(false)} aria-label="Cerrar proyectos"><Icon name="close" /></button>
       <button className="new-project" onClick={() => { setSidebarOpen(false); setDialog('new') }}><Icon name="plus" size={18} />Nuevo proyecto<span aria-hidden="true">＋</span></button>
       <div className="search-box"><Icon name="search" size={16} /><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar cliente" aria-label="Buscar cliente" />{search && <button onClick={() => setSearch('')} aria-label="Limpiar búsqueda"><Icon name="close" size={13} /></button>}</div>

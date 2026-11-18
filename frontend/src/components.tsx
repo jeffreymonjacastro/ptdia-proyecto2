@@ -71,5 +71,5 @@ export function Mark({ small = false }: { small?: boolean }) {
 export const styleAccent = (style: Style): CSSProperties => ({ '--style-accent': STYLES[style].accent }) as CSSProperties
 
 export function ConnectionEntry({children}:{children:ReactNode}) {
-  return <main className="connection-screen"><div className="connection-card"><div className="connection-brand"><Icon name="bed" size={32}/><span>estudio</span></div>{children}</div></main>
+  return <main className="connection-screen"><div className="connection-card"><div className="connection-brand"><Icon name="bed" size={32}/><span>4to estudio</span></div>{children}</div></main>
 }
