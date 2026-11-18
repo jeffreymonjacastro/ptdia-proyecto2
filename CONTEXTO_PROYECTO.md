@@ -33,6 +33,7 @@ La aplicación **Estudio** ayuda a un diseñador a explorar dormitorios con su c
 - Alcance exclusivo de **habitaciones / dormitorios**.
 - Lote completo de exactamente cinco posiciones: `1 luxury` (Luxury), `2 japanese` (Japanese), `3 neo-classic` (Neo Classic), `4 attic` (Attic), `5 cyberpunk` (Cyberpunk).
 - Toda versión nueva empieza pendiente. `decision: null` no es rechazo.
+- Las tarjetas renderizan Markdown en las descripciones (negritas, párrafos y listas) mediante `react-markdown`, omitiendo HTML e imágenes incrustadas. Las fotos conservan su descarga autenticada.
 - **Rechazar abre diálogo y exige motivo no vacío**, máximo 500 caracteres en la UI. Cancelar/cerrar no registra nada. Confirmar guarda el motivo sobre esa versión y regenera solo su estilo, conservando las otras cuatro propuestas y decisiones.
 - Al aceptar el motivo es opcional; no reutilizar un motivo de aceptación como rechazo.
 - Conservar original, versiones y decisiones. El backend regenera desde el original con preferencias y feedback; no encadenar por defecto la imagen sintética anterior.
@@ -159,7 +160,7 @@ Para pruebas backend usar PostgreSQL **local desechable** y DSN de loopback/base
 
 Verificado durante esta integración:
 
-- **72/72 pruebas frontend** y `npm run build` pasan. Suite API/DTO/controlador/UI, más las reglas, fotos y persistencia demo anteriores. Procesos separados por archivo evitan contaminación entre Happy DOM y FormData nativo.
+- **74/74 pruebas frontend** y `npm run build` pasan, incluidas negritas/listas Markdown y exclusión de HTML/imágenes en descripciones. Suite API/DTO/controlador/UI, más las reglas, fotos y persistencia demo anteriores. Procesos separados por archivo evitan contaminación entre Happy DOM y FormData nativo.
 - Fixture `frontend/src/fixtures/session.json` validado contra el modelo **`SessionDetail`** real del backend.
 - **19/19 pruebas backend** con PostgreSQL 17 local desechable. Sin cambios de contrato backend.
 - Navegador contra FastAPI/Repository/Worker reales locales, con **Auth e inferencia controladas de prueba**: acceso A, carga, cinco slots, aceptación, rechazo Attic con motivo, Attic V2 conservando las otras cuatro, cinco aceptaciones, resumen del servidor con rechazo histórico, recarga y cuenta B sin proyectos de A. No es evidencia GPU ni Supabase remoto.

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import Markdown from 'react-markdown'
 import { STYLES, currentVersion, type Proposal, type ProjectAction } from './domain.ts'
 import { Dialog, Icon, RoomImage, styleAccent } from './components.tsx'
 import { PrivateImage } from './PrivateImage.tsx'
@@ -41,7 +42,7 @@ export function ProposalCard({ proposal, paused, onAction, onPreview, connected 
       <div className="proposal-title"><h3>{proposal.label || style.name}</h3><span className="version">#{proposal.position} · V{version.number}</span>
         <span className={`decision-badge ${version.status}`}><Icon name={version.status === 'accepted' ? 'check' : version.status === 'rejected' ? 'close' : 'clock'} size={12} />{version.status === 'accepted' ? 'Aceptada' : version.status === 'rejected' ? 'Rechazada' : 'Pendiente'}</span>
       </div>
-      <p className="proposal-description">{version.description}</p>
+      <div className="proposal-description"><Markdown skipHtml disallowedElements={['img']}>{version.description}</Markdown></div>
       {busy || failed ? <div className={`card-progress ${failed ? 'failed' : ''}`} role="status">
         {failed ? <><span>No se completó la nueva versión.</span><button className="text-button" disabled={paused || pending} onClick={() => { const result = onAction({ type: 'retry', position: proposal.position, versionId: version.id }); if (result) void result.catch(cause => setError(cause instanceof Error ? cause.message : 'No se pudo reintentar.')) }}><Icon name="refresh" size={14} /> Reintentar</button></>
           : <><span className={paused ? '' : 'spinner'} />{paused ? 'Regeneración en pausa' : 'Preparando nueva versión…'}</>}

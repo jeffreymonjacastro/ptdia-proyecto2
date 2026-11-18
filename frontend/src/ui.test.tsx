@@ -22,6 +22,25 @@ const { useWorkspace } = await import('./useWorkspace.ts')
 afterEach(() => cleanup())
 const example = () => createProject({ client: 'Valeria', room: 'Dormitorio', preferences: '', photo: { kind: 'example', name: 'ejemplo.jpg' }, consent: true, bedroomConfirmed: true })
 
+test('la descripción muestra negritas y listas Markdown', () => {
+  const project = example()
+  currentVersion(project.proposals[0]).description = 'Cambios visibles:\n\n* **Iluminación:** Luz cálida.\n* **Colores:** Tonos beige.'
+  const view = render(createElement(ProposalCard, { proposal: project.proposals[0], paused: false, onAction() {}, onPreview() {} }))
+  assert.equal(view.getAllByRole('listitem').length, 2)
+  assert.equal(view.container.querySelector('strong')?.textContent, 'Iluminación:')
+  assert.ok(!view.container.querySelector('.proposal-description')!.textContent!.includes('**'))
+})
+
+test('la descripción admite texto simple e ignora HTML e imágenes externas', () => {
+  const project = example()
+  currentVersion(project.proposals[0]).description = 'Se conserva la ventana.\n\n<script>alert(1)</script>\n\n<img src="https://example.com/tracker" onerror="alert(1)">\n\n![externa](https://example.com/image.png)'
+  const view = render(createElement(ProposalCard, { proposal: project.proposals[0], paused: false, onAction() {}, onPreview() {} }))
+  const description = view.container.querySelector('.proposal-description')!
+  assert.ok(view.getByText('Se conserva la ventana.'))
+  assert.equal(description.querySelector('script, img'), null)
+  assert.ok(!description.textContent!.includes('<script>'))
+})
+
 test('rechazar solicita un motivo antes de cambiar la versión y permite cancelar', () => {
   let p = example()
   const original = structuredClone(p)

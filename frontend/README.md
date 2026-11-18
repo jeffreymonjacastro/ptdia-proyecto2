@@ -50,6 +50,7 @@ Las imágenes se descargan como Blob autenticado y se muestran mediante object U
 - JPEG/PNG/WebP, hasta 10 MiB y 25 MP, con validación de cabecera y decodificación del navegador; el backend vuelve a validar e impone imágenes estáticas.
 - Al cambiar foto se restablecen confirmación de dormitorio y consentimiento. El formulario conectado no usa automáticamente la foto del mockup.
 - Se conservan los IDs del servidor y las semillas como string. La versión vigente se busca por `current_version_id`; `decision: null` significa pendiente. Un lote parcial no se muestra como cinco propuestas listas.
+- Las descripciones de las tarjetas admiten Markdown (negritas, párrafos y listas) mediante `react-markdown`. Se omiten HTML e imágenes incrustadas; las fotos siguen usando el endpoint privado autenticado.
 - Una respuesta tardía del historial no revierte un alta/borrado confirmado; los conflictos 409 recargan el detalle antes de permitir repetir.
 - Los estados iniciales `generating`, `needs_confirmation`, `rejected` y `failed` tienen pantallas de espera, confirmación de dormitorio, nueva foto o reintento. Los jobs siguen en el backend aunque se cierre la página; al volver se recuperan.
 - Se puede eliminar también una sesión cuya foto fue rechazada, falló o sigue esperando propuestas. Un resumen fallido informa el error y permite reintentarlo.
@@ -80,6 +81,6 @@ npm run build
 npm run preview
 ```
 
-**Verificación local: 72 pruebas frontend y build pasan; 19 pruebas backend con PostgreSQL desechable.** La suite usa Node/tsx con procesos separados por archivo, Testing Library, Happy DOM y `fake-indexeddb`. Verifica transporte HTTP con respuestas controladas, JSON real de sesiones, estado del controlador, motivos, consentimiento y recuperación. `src/fixtures/session.json` se contrastó con el modelo `SessionDetail` real del backend. Los tests de API/controlador no demuestran inferencia GPU ni disponibilidad del túnel.
+**Verificación local: 74 pruebas frontend y build pasan; 34 pruebas backend con PostgreSQL desechable (incluida la corrección posterior de resúmenes 0.1.1).** La suite usa Node/tsx con procesos separados por archivo, Testing Library, Happy DOM y `fake-indexeddb`. Verifica transporte HTTP con respuestas controladas, JSON real de sesiones, estado del controlador, motivos, consentimiento y recuperación. `src/fixtures/session.json` se contrastó con el modelo `SessionDetail` real del backend. Los tests de API/controlador no demuestran inferencia GPU ni disponibilidad del túnel.
 
 La [guía backend](../backend/README.md) documenta las pruebas PostgreSQL, Kaggle, Supabase y el verificador autenticado con dos cuentas. Confirmar CORS para el origen exacto antes de las pruebas de navegador. Consultar [CONTEXTO_PROYECTO.md](../CONTEXTO_PROYECTO.md) para el estado de la rama y los siguientes pasos.

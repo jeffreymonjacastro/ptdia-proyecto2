@@ -122,6 +122,12 @@ textarea { resize: vertical; }
 .decision-badge.accepted { background: #34402d; color: #c1d5b1; }
 .decision-badge.rejected { background: #50372f; color: #e3b8a8; }
 .proposal-description { font-size: 10px; color: #bbb7aa; margin: 6px 0 12px; line-height: 1.4; }
+.proposal-description p + p, .proposal-description ul, .proposal-description ol { margin-top: .6em; }
+.proposal-description ul, .proposal-description ol { padding-left: 1.5em; }
+.proposal-description ul { list-style: disc; }
+.proposal-description ol { list-style: decimal; }
+.proposal-description li + li { margin-top: .4em; }
+.proposal-description strong { font-weight: 700; color: #f1eee5; }
 .decision-actions { display: flex; gap: 7px; }
 .decision-button { display: flex; align-items: center; justify-content: center; gap: 6px; border: 1px solid #555347; border-radius: 5px; background: #24241e; color: #d5d1c5; padding: 6px 4px; font-size: 10px; flex: 1; }
 .decision-button.accept:not(:disabled):hover { border-color: #a0b08d; background: #34402c; }
