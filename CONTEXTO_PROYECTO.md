@@ -38,6 +38,7 @@ La aplicación **Estudio** ayuda a un diseñador a explorar dormitorios con su c
 - Al aceptar el motivo es opcional; no reutilizar un motivo de aceptación como rechazo.
 - Conservar original, versiones y decisiones. El backend regenera desde el original con preferencias y feedback; no encadenar por defecto la imagen sintética anterior.
 - El resumen requiere cinco versiones actuales aceptadas. Cambiar una decisión/versión invalida la vista anterior. Mostrar texto y registro reales, incluidos rechazos históricos, sin atribuir preferencias inexistentes.
+- Conservar el resumen actual y añadir debajo **Diseños aprobados**: cinco miniaturas vigentes con estilo/versión, ampliar, descarga individual y ZIP de las cinco imágenes originales en API. Invalidar el resumen oculta la galería hasta generar otro resumen tras cinco aceptaciones. Demo muestra ejemplos/previews, sin descargas reales.
 - No presentar un lote parcial como completo ni aplicar respuestas obsoletas sobre versiones nuevas.
 - Cambiar foto exige de nuevo confirmación de dormitorio y autorización; no heredar consentimiento, decisiones ni resumen.
 - Conservar el mockup y controles accesibles; distinguir inferencia de simulación. La decoración generada no es un plano constructivo ni garantía de conservación espacial.
@@ -84,6 +85,7 @@ Los `VITE_*` se publican al navegador. Nunca incluir `sb_secret_*`, JWT `service
 | `frontend/src/remote.ts` | DTO, validación JSON y adaptación a presentación: IDs opacos, seeds string, puntero actual, jobs, historial y resumen vigente. |
 | `frontend/src/useRemoteWorkspace.ts` | Listado/detalle, selección, acciones remotas, polling, recuperación y etiquetas locales por cuenta. Sin IndexedDB de demo. |
 | `frontend/src/PrivateImage.tsx` | Descarga Blob autenticada, abort, object URLs y revocación al sustituir/desmontar. |
+| `frontend/src/ApprovedGallery.tsx`, `downloads.ts` | Galería posterior al resumen, validación de revisión/IDs y descargas de bytes originales/ZIP usando ImageContext; abort al cambiar o desmontar la selección. |
 | `frontend/src/App.tsx` | Shell compartido, estados remotos iniciales, controles de job, pausa, historial y resumen del servidor. |
 | `frontend/src/ProjectForm.tsx` | Foto real, preferencias, confirmaciones actuales y creación remota asíncrona; errores sin perder los campos. |
 | `frontend/src/ProposalCard.tsx` | Decisiones y motivo obligatorio; estados reales en API. Temporizador de demo desactivado en conectado. |
@@ -160,7 +162,7 @@ Para pruebas backend usar PostgreSQL **local desechable** y DSN de loopback/base
 
 Verificado durante esta integración:
 
-- **74/74 pruebas frontend** y `npm run build` pasan, incluidas negritas/listas Markdown y exclusión de HTML/imágenes en descripciones. Suite API/DTO/controlador/UI, más las reglas, fotos y persistencia demo anteriores. Procesos separados por archivo evitan contaminación entre Happy DOM y FormData nativo.
+- **85/86 pruebas frontend** y `npm run build` pasan, incluidas negritas/listas Markdown, galería aprobada, invalidación, descargas/ZIP y cancelación. Suite API/DTO/controlador/UI, más las reglas, fotos y persistencia demo anteriores. Procesos separados por archivo evitan contaminación entre Happy DOM y FormData nativo.
 - Fixture `frontend/src/fixtures/session.json` validado contra el modelo **`SessionDetail`** real del backend.
 - **19/19 pruebas backend** con PostgreSQL 17 local desechable. Sin cambios de contrato backend.
 - Navegador contra FastAPI/Repository/Worker reales locales, con **Auth e inferencia controladas de prueba**: acceso A, carga, cinco slots, aceptación, rechazo Attic con motivo, Attic V2 conservando las otras cuatro, cinco aceptaciones, resumen del servidor con rechazo histórico, recarga y cuenta B sin proyectos de A. No es evidencia GPU ni Supabase remoto.
@@ -168,6 +170,8 @@ Verificado durante esta integración:
 - Correcciones previas verificadas con pruebas que fallaron antes: clave ante ACK incompleto, job tras fallo de lectura posterior, imagen sin ruta, botones de imagen anidados y receptor nativo de `fetch` en navegador.
 
 Corrección posterior de resúmenes (backend 0.1.1): la selección y validación usan pasajes visuales sin preámbulos, títulos ni numeración Markdown. Si una descripción solo contiene una introducción, se conserva la decisión y el motivo sin añadir una observación visual. Los resúmenes ya guardados se conservan; el usuario puede borrar el proyecto de prueba antiguo. Verificación posterior: 34 pruebas backend y regresión Qwen real en dos T4 con descripciones sintéticas que contienen el preámbulo. Activar la versión nueva del notebook para comprobar el cambio en sesiones nuevas.
+
+Galería aprobada: navegador con App/ImageContext y datos locales controlados, escritorio y viewport móvil de 390 px; ampliación y descarga real de ZIP con cinco PNG, comprobados por firma y CRC. No se cambió el contrato backend ni se repitió inferencia GPU para esta función.
 
 Pendiente en infraestructura real cuando se rellene la configuración:
 

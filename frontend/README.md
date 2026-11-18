@@ -55,6 +55,8 @@ Las imágenes se descargan como Blob autenticado y se muestran mediante object U
 - Los estados iniciales `generating`, `needs_confirmation`, `rejected` y `failed` tienen pantallas de espera, confirmación de dormitorio, nueva foto o reintento. Los jobs siguen en el backend aunque se cierre la página; al volver se recuperan.
 - Se puede eliminar también una sesión cuya foto fue rechazada, falló o sigue esperando propuestas. Un resumen fallido informa el error y permite reintentarlo.
 - Cinco versiones actuales aceptadas habilitan el resumen. Se muestra el texto de **`session.summary.summary`** solo para la revisión vigente. El cálculo de resumen de la demo no se ejecuta sobre datos remotos.
+- Debajo del resumen aparece **Diseños aprobados**, con las cinco imágenes actuales, estilo/versión y vista ampliada. En modo API, **Descargar imagen** conserva los bytes originales y su extensión PNG/JPEG/WebP; **Descargar todas** crea un ZIP en el navegador con esos cinco archivos (`<estilo>-v<número>.<extensión>`). Usa el mismo loader autenticado y no requiere un endpoint nuevo. Si falla una descarga, se muestra el error y se permite reintentar; no se guarda un ZIP parcial.
+- Rechazar o cambiar una versión invalida el resumen y oculta la galería. Aceptar la sustituta no basta: vuelve a aparecer al generar el resumen actualizado de las cinco aceptadas. Pausar conserva una selección final vigente. Cambiar de proyecto, salir o invalidar la selección aborta sus descargas pendientes. La demo muestra ejemplos y vistas ampliadas, sin descargas de propuestas reales.
 - Pausar/reanudar se envía mediante PATCH. El control queda deshabilitado durante jobs activos porque el backend no ofrece cancelación de inferencia.
 - **Nombres de cliente/espacio:** la API actual no tiene esos campos; se recuerdan como etiquetas locales separadas por cuenta. En otro navegador se muestran sesiones identificadas por fecha/ID. No se confunden con el propietario autenticado.
 - **Preferencias del chat:** la API recibe preferencias al crear y el motivo de rechazo al regenerar; no tiene endpoint de chat/edición posterior. La barra conectada indica cómo ajustar por rechazo, sin prometer que un mensaje cambie el prompt remoto.
@@ -72,6 +74,7 @@ Las etiquetas de cliente/espacio aún pueden sobrescribirse si se crean o borran
 | `src/remote.ts` | Tipos, validación JSON y adaptación al modelo de presentación. |
 | `src/useRemoteWorkspace.ts` | Sesiones, selección, escrituras, polling y recuperación. |
 | `src/PrivateImage.tsx` | Imágenes autenticadas y ciclo de vida de object URLs. |
+| `src/ApprovedGallery.tsx`, `src/downloads.ts` | Galería final vigente, descargas autenticadas de imágenes y ZIP sin versiones rechazadas. |
 | `src/App.tsx`, `ProjectForm.tsx`, `ProposalCard.tsx`, `History.tsx` | Interfaz compartida entre modos, con controles conectados. |
 | `src/domain.ts`, `storage.ts`, `useWorkspace.ts` | Reglas de la demo y persistencia local; desactivada en modo API. |
 
@@ -81,6 +84,6 @@ npm run build
 npm run preview
 ```
 
-**Verificación local: 74 pruebas frontend y build pasan; 34 pruebas backend con PostgreSQL desechable (incluida la corrección posterior de resúmenes 0.1.1).** La suite usa Node/tsx con procesos separados por archivo, Testing Library, Happy DOM y `fake-indexeddb`. Verifica transporte HTTP con respuestas controladas, JSON real de sesiones, estado del controlador, motivos, consentimiento y recuperación. `src/fixtures/session.json` se contrastó con el modelo `SessionDetail` real del backend. Los tests de API/controlador no demuestran inferencia GPU ni disponibilidad del túnel.
+**Verificación local: 86 pruebas frontend y build pasan; 34 pruebas backend con PostgreSQL desechable (incluida la corrección posterior de resúmenes 0.1.1).** La suite usa Node/tsx con procesos separados por archivo, Testing Library, Happy DOM y `fake-indexeddb`. Verifica transporte HTTP con respuestas controladas, JSON real de sesiones, estado del controlador, motivos, consentimiento y recuperación; también la galería final, invalidación, descarga individual, bytes del ZIP, fallos/reintentos y cancelación. Se comprobó la galería en navegador con datos locales controlados en escritorio/móvil y se descargó un ZIP con cinco PNG válidos. `src/fixtures/session.json` se contrastó con el modelo `SessionDetail` real del backend. Los tests de API/controlador no demuestran inferencia GPU ni disponibilidad del túnel.
 
 La [guía backend](../backend/README.md) documenta las pruebas PostgreSQL, Kaggle, Supabase y el verificador autenticado con dos cuentas. Confirmar CORS para el origen exacto antes de las pruebas de navegador. Consultar [CONTEXTO_PROYECTO.md](../CONTEXTO_PROYECTO.md) para el estado de la rama y los siguientes pasos.

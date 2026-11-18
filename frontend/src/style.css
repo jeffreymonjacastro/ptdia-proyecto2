@@ -181,6 +181,22 @@ textarea { resize: vertical; }
 .final-summary details { border-top: 1px solid #414631; padding-top: 12px; margin-top: 15px; font-size: 10px; color: #afb29c; }
 .final-summary details summary { cursor: pointer; }
 .final-summary pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 10px; line-height: 1.8; margin-top: 14px; color: #c8cab5; }
+.approved-gallery { margin: 22px 0 8px; padding: 20px; border: 1px solid #454936; border-radius: 12px; background: #20221b; }
+.approved-gallery-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 18px; }
+.approved-gallery h2 { font-size: 17px; font-weight: 500; color: #e9e7e2; margin: 0 0 6px; }
+.approved-gallery-heading p:not(.eyebrow) { font-size: 11px; line-height: 1.6; color: #b5b6a5; }
+.approved-gallery-heading > button { flex-shrink: 0; }
+.approved-gallery-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.approved-gallery figure { margin: 0; min-width: 0; border: 1px solid #464a38; border-radius: 8px; overflow: hidden; background: #191b16; }
+.approved-image-button { display: block; position: relative; width: 100%; aspect-ratio: 16 / 10; overflow: hidden; }
+.approved-image-button .expand-button { opacity: 1; }
+.approved-image-button > .photo-image, .approved-image-button > .room-image, .approved-image-button > .private-image-state { width: 100%; height: 100%; object-fit: cover; }
+.approved-gallery figcaption { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 12px; }
+.approved-gallery figcaption > span { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #d5dcc5; }
+.approved-gallery figcaption .text-button { font-size: 11px; }
+.approved-gallery-notice { display: flex; align-items: center; gap: 8px; margin-top: 14px; color: #c1c9ac; font-size: 11px; }
+@media (max-width: 1000px) { .approved-gallery-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .approved-gallery { padding: 14px; } .approved-gallery-heading { align-items: flex-start; flex-direction: column; } .approved-gallery-grid { grid-template-columns: 1fr; } }
 .composer-area { flex-shrink: 0; padding: 16px 35px 12px; width: 100%; max-width: 1270px; align-self: center; background: linear-gradient(#15151400, #151514 12%); }
 .composer { display: flex; align-items: center; gap: 12px; background: #25251f; border: 1px solid #5c5542; border-radius: 10px; padding: 10px 11px; box-shadow: 0 4px 22px #0002; }
 .composer:focus-within { border-color: #aa9470; }

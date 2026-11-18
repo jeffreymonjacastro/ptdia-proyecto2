@@ -214,3 +214,40 @@ test('un resumen fallido muestra el error y permite reintentar explícitamente',
   assert.match(view.getByRole('alert').textContent!,/resumen/i)
   assert.ok(view.getByRole('button',{name:'Reintentar resumen'}))
 })
+
+function completedProject() {
+  let project = example()
+  for (const proposal of project.proposals) project = updateProject(project, { type: 'decide', position: proposal.position, versionId: currentVersion(proposal).id, status: 'accepted', reason: '' })
+  project.proposals.forEach(proposal => { currentVersion(proposal).imageUrl = `/api/generations/${project.id}/versions/${currentVersion(proposal).id}/image` })
+  return updateProject(project, { type: 'summarize' })
+}
+
+test('la galería aparece después del resumen con cinco versiones aprobadas y abre su vista ampliada', () => {
+  const project = completedProject()
+  const view = render(createElement(App, { remote: remoteView(project) }))
+  const gallery = view.getByRole('region', { name: 'Diseños aprobados' })
+  const summary = view.getByRole('region', { name: 'Resumen final de la sesión' })
+  assert.ok(summary.compareDocumentPosition(gallery) & 4)
+  assert.equal(gallery.querySelectorAll('figure').length, 5)
+  fireEvent.click(view.getByRole('button', { name: 'Ampliar diseño aprobado Luxury, versión 1' }))
+  assert.ok(view.getByRole('dialog', { name: 'Luxury · Versión 1' }))
+})
+
+test('rechazar oculta la galería hasta aceptar la sustituta y generar otro resumen', () => {
+  let project = completedProject()
+  const view = render(createElement(App, { remote: remoteView(project) }))
+  assert.ok(view.getByRole('region', { name: 'Diseños aprobados' }))
+  project = updateProject(project, { type: 'decide', position: 4, versionId: currentVersion(project.proposals[3]).id, status: 'rejected', reason: 'Conservar el techo' })
+  view.rerender(createElement(App, { remote: remoteView(project) }))
+  assert.equal(view.queryByRole('region', { name: 'Diseños aprobados' }), null)
+  project = updateProject(project, { type: 'regenerated', position: 4, versionId: currentVersion(project.proposals[3]).id })
+  currentVersion(project.proposals[3]).imageUrl = '/api/generations/session/versions/attic-v2/image'
+  project = updateProject(project, { type: 'decide', position: 4, versionId: currentVersion(project.proposals[3]).id, status: 'accepted', reason: '' })
+  view.rerender(createElement(App, { remote: remoteView(project) }))
+  assert.equal(view.queryByRole('region', { name: 'Diseños aprobados' }), null)
+  project = updateProject(project, { type: 'summarize' })
+  view.rerender(createElement(App, { remote: remoteView(project) }))
+  const gallery = view.getByRole('region', { name: 'Diseños aprobados' })
+  assert.ok(gallery.textContent!.includes('Attic · V2'))
+  assert.ok(!gallery.textContent!.includes('Attic · V1'))
+})

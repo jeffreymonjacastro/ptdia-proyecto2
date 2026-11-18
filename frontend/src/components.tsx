@@ -11,6 +11,7 @@ const paths = {
   sparkle: 'm12 2 3 7 7 3-7 3-3 7-3-7-7-3 7-3 3-7Z',
   arrow: 'M12 19V5m-6 6 6-6 6 6', attach: 'm8 12 6-6a3 3 0 0 1 4 4l-8 8a5 5 0 0 1-7-7l9-9',
   upload: 'M12 16V3m-5 5 5-5 5 5M3 15v4a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-4',
+  download: 'M12 3v13m-5-5 5 5 5-5M3 16v4a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1v-4',
   pause: 'M8 5v14M16 5v14', play: 'm8 4 12 8-12 8V4Z',
   trash: 'M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7',
   chevron: 'm9 5 7 7-7 7', menu: 'M4 6h16M4 12h16M4 18h16',

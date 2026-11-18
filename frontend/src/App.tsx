@@ -7,6 +7,7 @@ import { History } from './History.tsx'
 import { useWorkspace } from './useWorkspace.ts'
 import { activeJobs } from './remote.ts'
 import { PrivateImage } from './PrivateImage.tsx'
+import { ApprovedGallery } from './ApprovedGallery.tsx'
 import type { ActionHandler, RemoteController } from './useRemoteWorkspace.ts'
 
 export default function App({ remote }: { remote?: RemoteController }) {
@@ -171,6 +172,7 @@ function Workbench({ project, onAction, onNew, onDelete, connected = false, savi
           <p className="muted">{rejected.length ? `${rejected.length === 1 ? 'Se conserva 1 rechazo' : `Se conservan ${rejected.length} rechazos`} en el historial, con sus motivos cuando se indicaron.` : 'No se registraron rechazos.'} No se atribuyen preferencias adicionales.</p>
           <details><summary>Ver registro del resumen</summary><pre>{project.summary.text}</pre></details>{copyStatus && <p role="status" className="copy-status">{copyStatus}</p>}
         </section>}
+        <ApprovedGallery project={project} connected={connected} onPreview={setPreview}/>
         <div ref={end} />
       </div>
     </div>
