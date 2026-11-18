@@ -4,8 +4,9 @@ import { STYLES, currentVersion, type Proposal, type ProjectAction } from './dom
 import { Dialog, Icon, RoomImage, styleAccent } from './components.tsx'
 import { PrivateImage } from './PrivateImage.tsx'
 import type { ActionHandler } from './useRemoteWorkspace.ts'
+import type { LuxuryVariant } from './domain.ts'
 
-export function ProposalCard({ proposal, paused, onAction, onPreview, connected = false }: { proposal: Proposal; paused: boolean; onAction: ActionHandler; onPreview: () => void; connected?: boolean }) {
+export function ProposalCard({ proposal, paused, onAction, onPreview, connected = false, modelBusy = false }: { proposal: Proposal; paused: boolean; onAction: ActionHandler; onPreview: () => void; connected?: boolean; modelBusy?:boolean }) {
   const version = currentVersion(proposal)
   const [reason, setReason] = useState('')
   const [rejectionReason,setRejectionReason]=useState('')
@@ -42,6 +43,19 @@ export function ProposalCard({ proposal, paused, onAction, onPreview, connected 
       <div className="proposal-title"><h3>{proposal.label || style.name}</h3><span className="version">#{proposal.position} · V{version.number}</span>
         <span className={`decision-badge ${version.status}`}><Icon name={version.status === 'accepted' ? 'check' : version.status === 'rejected' ? 'close' : 'clock'} size={12} />{version.status === 'accepted' ? 'Aceptada' : version.status === 'rejected' ? 'Rechazada' : 'Pendiente'}</span>
       </div>
+      {connected && proposal.style === 'luxury' && proposal.luxuryChoices?.length === 2 && <label className="luxury-model-choice">Modelo de Luxury
+        <select aria-label="Modelo de Luxury" value={proposal.requestedLuxuryVariant || proposal.luxuryVariant || 'custom'} disabled={paused || busy || pending || modelBusy} onChange={event => {
+          const variant = event.target.value as LuxuryVariant
+          if (variant === proposal.luxuryVariant) return
+          setPending(true); setError('')
+          try {
+            const result = onAction({type:'switch-luxury',position:proposal.position,versionId:version.id,variant})
+            if (result) void result.catch(cause => setError(cause instanceof Error ? cause.message : 'No se pudo cambiar el modelo.')).finally(() => setPending(false))
+            else setPending(false)
+          } catch (cause) { setPending(false); setError(cause instanceof Error ? cause.message : 'No se pudo cambiar el modelo.') }
+        }}>{proposal.luxuryChoices.map(option => <option key={option.id} value={option.id}>{option.label}{option.id==='custom'?' · propio':''}</option>)}</select>
+        <span>Cambiar el modelo crea una nueva versión solo de Luxury.</span>
+      </label>}
       <div className="proposal-description"><Markdown skipHtml disallowedElements={['img']}>{version.description}</Markdown></div>
       {busy || failed ? <div className={`card-progress ${failed ? 'failed' : ''}`} role="status">
         {failed ? <><span>No se completó la nueva versión.</span><button className="text-button" disabled={paused || pending} onClick={() => { const result = onAction({ type: 'retry', position: proposal.position, versionId: version.id }); if (result) void result.catch(cause => setError(cause instanceof Error ? cause.message : 'No se pudo reintentar.')) }}><Icon name="refresh" size={14} /> Reintentar</button></>

@@ -1,9 +1,10 @@
 export type Style = 'luxury' | 'japanese' | 'neo-classic' | 'attic' | 'cyberpunk'
+export type LuxuryVariant = 'custom' | 'pretrained'
 export type Decision = 'pending' | 'accepted' | 'rejected'
 export type Photo = { kind: 'example'; name: string } | { kind: 'upload'; name: string; blob: Blob; width: number; height: number } | { kind: 'remote'; name: string; url: string }
-export type Version = { id: string; number: number; status: Decision; description: string; createdAt: string; imageUrl?: string; seed?: string }
-export type Proposal = { position: number; style: Style; label?: string; currentVersionId?: string; versions: Version[]; generation: 'idle' | 'generating' | 'failed' }
-export type Job = { id: string; kind: 'initial' | 'regenerate' | 'summary' | 'delete'; status: 'queued' | 'running' | 'succeeded' | 'failed'; position: number | null; progress: number; error: string | null }
+export type Version = { id: string; number: number; status: Decision; description: string; createdAt: string; imageUrl?: string; seed?: string; label?: string; luxuryVariant?: LuxuryVariant }
+export type Proposal = { position: number; style: Style; label?: string; currentVersionId?: string; versions: Version[]; generation: 'idle' | 'generating' | 'failed'; luxuryVariant?: LuxuryVariant; luxuryChoices?: {id:LuxuryVariant;label:string}[]; requestedLuxuryVariant?:LuxuryVariant }
+export type Job = { id: string; kind: 'initial' | 'regenerate' | 'summary' | 'delete'; status: 'queued' | 'running' | 'succeeded' | 'failed'; position: number | null; progress: number; error: string | null; luxury_variant?: LuxuryVariant|null }
 export type DecisionEvent = { id: string; position: number; versionId: string; status: Exclude<Decision, 'pending'>; reason: string; createdAt: string }
 export type Summary = { revision: number; acceptedVersionIds: string[]; rejectedVersionIds: string[]; text: string }
 export type Project = {
@@ -11,8 +12,9 @@ export type Project = {
   status: 'ready' | 'paused' | 'completed' | 'generating' | 'needs_confirmation' | 'rejected' | 'failed'; revision: number; proposals: Proposal[]; jobs?: Job[]
   events: DecisionEvent[]; messages: { id: string; text: string; createdAt: string }[]; summary?: Summary
 }
-export type ProjectInput = Pick<Project, 'client' | 'room' | 'preferences' | 'photo'> & { consent: boolean; bedroomConfirmed: boolean }
+export type ProjectInput = Pick<Project, 'client' | 'room' | 'preferences' | 'photo'> & { consent: boolean; bedroomConfirmed: boolean; luxuryModel?: LuxuryVariant }
 export type ProjectAction =
+  | { type: 'switch-luxury'; position: number; versionId: string; variant: LuxuryVariant }
   | { type: 'decide'; position: number; versionId: string; status: 'accepted' | 'rejected'; reason: string }
   | { type: 'regenerated' | 'generation-failed' | 'retry'; position: number; versionId: string }
   | { type: 'pause' }
@@ -76,6 +78,7 @@ export function buildSummary(project: Project): Summary {
 }
 
 export function updateProject(project: Project, action: ProjectAction): Project {
+  if (action.type === 'switch-luxury') return project
   if (action.type === 'resume') return project.status === 'paused' ? { ...project, status: project.summary ? 'completed' : 'ready' } : project
   if (project.status === 'paused') return project
   if (action.type === 'pause') return { ...project, status: 'paused' }

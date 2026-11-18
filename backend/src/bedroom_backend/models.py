@@ -59,7 +59,9 @@ class KaggleModels:
         return self.files[cache_key]
 
     def pin_profiles(self, catalog):
-        return tuple({**profile, "sha256": self.weight(profile)[1]} for profile in catalog)
+        return tuple({**profile, "sha256": self.weight(profile)[1],
+                      "variants": {name: {**option, "sha256": self.weight(option)[1]}
+                                   for name, option in profile.get("variants", {}).items()}} for profile in catalog)
 
     def render(self, original, profile, prompt, seed):
         torch = self.torch
@@ -82,7 +84,8 @@ class KaggleModels:
             photo = ImageOps.pad(photo, size, Image.Resampling.LANCZOS)
             with torch.inference_mode():
                 generated = self.pipeline(
-                    prompt=prompt, image=photo, strength=profile["strength"], guidance_scale=profile["guidance"],
+                    prompt=prompt, negative_prompt=profile.get("negative_prompt") or None,
+                    image=photo, strength=profile["strength"], guidance_scale=profile["guidance"],
                     num_inference_steps=profile["steps"], generator=torch.Generator(device="cuda:0").manual_seed(seed),
                 ).images[0]
             buffer = BytesIO()

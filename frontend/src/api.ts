@@ -1,4 +1,5 @@
 import { parseJob, parseSession, parseSessionItem, parseSummary, type SessionItem } from './remote.ts'
+import type { LuxuryVariant } from './domain.ts'
 
 export class ApiError extends Error {
   status: number
@@ -81,15 +82,21 @@ export class BedroomApi {
   async detail(id: string, signal?: AbortSignal) { return parseSession(await this.request(`/api/generations/${encodeURIComponent(id)}`, { signal })) }
   async job(id: string, signal?: AbortSignal) { return parseJob(await this.request(`/api/jobs/${encodeURIComponent(id)}`, { signal })) }
   async image(path: string, signal?: AbortSignal): Promise<Blob> { return this.request(path, { signal }, true) }
-  async upload(photo: File | Blob, preferences: string, consent: boolean) {
+  async upload(photo: File | Blob, preferences: string, consent: boolean, luxuryModel: LuxuryVariant = 'custom') {
     if (!consent) throw new Error('Necesitamos tu autorización para usar esta fotografía.')
     const digest = await crypto.subtle.digest('SHA-256', await photo.arrayBuffer())
     const fingerprint = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, '0')).join('')
     const body = new FormData()
     body.set('image', photo, photo instanceof File ? photo.name : 'dormitorio.png')
     body.set('preferences', preferences)
+    body.set('luxury_model', luxuryModel)
     body.set('consent', 'true')
-    return this.write('POST', '/api/generations', body, JSON.stringify([fingerprint, preferences]), false, data => !!data && typeof data.session_id === 'string' && typeof data.job_id === 'string')
+    return this.write('POST', '/api/generations', body, JSON.stringify([fingerprint, preferences, luxuryModel]), false, data => !!data && typeof data.session_id === 'string' && typeof data.job_id === 'string')
+  }
+  async switchLuxury(id: string, version: string, variant: LuxuryVariant) {
+    const body = JSON.stringify({version_id:version, variant})
+    return this.write('PUT', `/api/generations/${encodeURIComponent(id)}/luxury-model`, body, body, true,
+      (data,status) => !!data && data.session_id === id && (status===202 ? typeof data.job_id==='string' && !!data.job_id : status===200 && data.version_id===version && data.variant===variant))
   }
   async decide(id: string, version: string, status: 'accepted' | 'rejected', reason: string) {
     if (status === 'rejected' && !reason.trim()) throw new Error('Indica el motivo del rechazo.')

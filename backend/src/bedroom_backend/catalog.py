@@ -1,5 +1,6 @@
 import json
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
@@ -18,6 +19,9 @@ class Style(BaseModel):
     strength: float = Field(gt=0, le=1)
     steps: int = Field(gt=0)
     guidance: float = Field(gt=0)
+    variant: Literal["custom", "pretrained"] | None = None
+    negative_prompt: str = ""
+    variants: dict[str, dict] = Field(default_factory=dict)
 
     @field_validator("label", "trigger", "template", "revision", mode="before")
     @classmethod
@@ -30,6 +34,10 @@ def load_catalog(path=None):
     profiles = {}
     for entry in config["profiles"]:
         profile = Style.model_validate(config.get("defaults", {}) | entry)
+        profile.variants = {name: Style.model_validate(config.get("defaults", {}) | option | {"variant": name, "variants": {}}).model_dump(exclude={"variants"})
+                            for name, option in profile.variants.items()}
+        if profile.variants and (set(profile.variants) != {"custom", "pretrained"} or any(p["id"] != profile.id for p in profile.variants.values())):
+            raise ValueError("Luxury choices must use the same style ID and both variants")
         if profile.id in profiles:
             raise ValueError(f"Duplicate style: {profile.id}")
         profiles[profile.id] = profile.model_dump()
@@ -37,6 +45,14 @@ def load_catalog(path=None):
     if len(active) != 5 or len(set(active)) != 5 or any(key not in profiles for key in active):
         raise ValueError("The active catalog must contain five distinct, configured styles")
     return tuple(profiles[key] for key in active)
+
+
+def selected_profile(profile):
+    return {key: value for key, value in profile.items() if key != "variants"}
+
+
+def luxury_variant(profile):
+    return profile.get("variant") or ("custom" if profile["weights"] == "Luxury_UTEC_r8_step300.safetensors" else "pretrained")
 
 
 def effective_prompt(profile, preferences, feedback):

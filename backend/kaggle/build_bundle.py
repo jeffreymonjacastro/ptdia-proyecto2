@@ -29,7 +29,7 @@ def main():
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--slug", required=True, help="A new private owner/slug")
     parser.add_argument("--revision", required=True, help="Exact Qwen Hugging Face commit")
-    parser.add_argument("--lora-dataset", default="jeffreyamc/plania-p2-jjs-luxury-bedroom-xl")
+    parser.add_argument("--lora-dataset", action="append", help="Repeat for each attached dataset; defaults to external adapters plus custom Luxury")
     parser.add_argument("--smoke-photo", type=Path, help="Public-domain JPEG fixture")
     args = parser.parse_args()
 
@@ -105,7 +105,7 @@ await serve_kaggle()
         "id": args.slug, "title": args.slug.split("/", 1)[1],
         "code_file": filename, "language": "python", "kernel_type": "script" if args.mode == "smoke" else "notebook",
         "is_private": True, "enable_gpu": True, "enable_internet": True, "machine_shape": "NvidiaTeslaT4",
-        "dataset_sources": [args.lora_dataset], "competition_sources": [], "kernel_sources": [], "model_sources": [],
+        "dataset_sources": args.lora_dataset or ["jeffreyamc/plania-p2-jjs-luxury-bedroom-xl", "badexample/plania-p2-luxury-utec-sdxl-lora"], "competition_sources": [], "kernel_sources": [], "model_sources": [],
     }
     (args.output / "kernel-metadata.json").write_text(json.dumps(metadata, indent=2), encoding="utf-8")
 

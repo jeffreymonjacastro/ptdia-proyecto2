@@ -49,6 +49,14 @@ def run_smoke(photo_path, output_dir):
             save()
 
         profile = catalog[3]
+        report["luxury_variants"] = []
+        for name in ("pretrained", "custom"):
+            option = catalog[0].get("variants", {}).get(name)
+            if option:
+                image = models.render(original, option, effective_prompt(option, "", None), 42)
+                (output / f'luxury-{name}.png').write_bytes(image)
+                report["luxury_variants"].append({"variant": name, "bytes": len(image), "description": models.describe(original, image), **models.provenance()})
+                save()
         feedback = "Conservar la forma del techo"
         image = models.render(original, profile, effective_prompt(profile, "", feedback), 6)
         regenerated_description = models.describe(original, image)

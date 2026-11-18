@@ -24,7 +24,7 @@ Wait for `pg_isready` to report that the database is accepting connections befor
 
 ## Set up shared persistence
 
-1. Create or select the **team-owned Supabase project** with the Data API and automatic table exposure disabled. Apply [the PostgreSQL migration](migrations/001_bedroom.sql) as the project database owner. Use a separate database login for the running backend. The statements below assume a fresh project and run in `psql` as the database owner. If the role is already provisioned, run only `\password bedroom_app`. Set the password through the prompt and store it in the team's password manager.
+1. Create or select the **team-owned Supabase project** with the Data API and automatic table exposure disabled. Apply [migration 001](migrations/001_bedroom.sql) then [migration 002](migrations/002_luxury_model_choice.sql) as the project database owner. Use a separate database login for the running backend. The statements below assume a fresh project and run in `psql` as the database owner. If the role is already provisioned, run only `\password bedroom_app`. Set the password through the prompt and store it in the team's password manager.
 
    ```sql
    CREATE ROLE bedroom_app LOGIN;
@@ -52,7 +52,7 @@ Build from the repository root. Use an untracked scratch output folder and repla
 uv build --wheel backend --out-dir /tmp/bedroom-wheel
 QWEN_REVISION=851bf6e806efd8d0a36b00ddf55e13ccb7b8cd0a
 python backend/kaggle/build_bundle.py demo \
-  --wheel /tmp/bedroom-wheel/bedroom_backend-0.1.1-py3-none-any.whl \
+  --wheel /tmp/bedroom-wheel/bedroom_backend-0.2.0-py3-none-any.whl \
   --slug YOUR_KAGGLE_OWNER/ptdia-bedroom-backend-demo \
   --revision "$QWEN_REVISION" --output /tmp/bedroom-demo
 kaggle kernels push -p /tmp/bedroom-demo --no-run
@@ -89,11 +89,31 @@ The model receives literal visual passages with introductions, Markdown headings
 
 The local suite passes 34 backend tests, including 15 focused summary regressions. A [private two-T4 Qwen regression](https://www.kaggle.com/code/badexample/ptdia-bedroom-summary-regression) selected the lighting and ceiling observations from descriptions containing the reported preamble, preserved the rejection reason, and omitted the visual claim for a description consisting only of that preamble.
 
-To activate a new wheel in Kaggle, save the updated private notebook, stop the previous API cell, and start a fresh notebook session with T4 ×2. Run the three cells in order. Check that `/openapi.json` reports `info.version` as `0.1.1`, update the frontend's API origin if the tunnel changed, and create a new test project. The new summary should quote an actual visual detail, such as a change in lighting or materials.
+To activate a new wheel in Kaggle, save the updated private notebook, stop the previous API cell, and start a fresh notebook session with T4 ×2. Run the three cells in order. Check that `/openapi.json` reports `info.version` as `0.2.0`, update the frontend's API origin if the tunnel changed, and create a new test project. The new summary should quote an actual visual detail, such as a change in lighting or materials.
 
 ## Post-grading purge
 
 Stop the demo notebook and use the same database URL, Supabase URL, private bucket, and server secret key in a secure local environment. From `backend/`, run `uv run bedroom-purge` for a dry run, then `uv run bedroom-purge --apply` to remove all sprint sessions and their objects. Check that the command reports zero remaining sessions and that the private bucket is empty. If Storage was temporarily unavailable, retry after two minutes to allow deferred Storage rechecks to run. Remove the temporary demo Auth accounts from the Supabase dashboard after the purge.
+
+## Luxury UTEC and the original Luxury model
+
+Backend **0.2.0** defaults new sessions to the custom Luxury UTEC LoRA while retaining the original external Luxury adapter as a choice. The five style IDs/positions do not change. Select `luxury_model=pretrained` in the upload multipart, or use the versioned [model-switch endpoint](FRONTEND.md#luxury-model-choice-backend-020) in an existing session. The frontend exposes this choice when creating a project and on its Luxury card.
+
+The public [custom-weight dataset](https://www.kaggle.com/datasets/badexample/plania-p2-luxury-utec-sdxl-lora) contains exactly `Luxury_UTEC_r8_step300.safetensors`, 46,615,272 bytes, SHA-256 `aad41fa2c1ab8a7b044a9e3acebb8651f562baa658f72262a99d242e4b5cc05b`. It was checked against the local handoff and published with Fabryzzio's training provenance and CreativeML Open RAIL++-M license text in the description. Training photos and other handoff files are not included. [Artifact manifest](kaggle/custom_lora.json).
+
+**Upgrade an existing database:** apply [migration 002](migrations/002_luxury_model_choice.sql) once as the database owner before launching 0.2.0. It adds two JSON fields, preserving sessions, versions, permissions and private-schema exposure. Fresh installations apply **001 then 002**. Readiness/preflight checks require both migrations. The migration was applied to the shared `Interior Design AI` project and the backend role's access was verified.
+
+Attach **both** the existing `jeffreyamc/plania-p2-jjs-luxury-bedroom-xl` dataset and `badexample/plania-p2-luxury-utec-sdxl-lora` to Kaggle. The bundle builder attaches both by default; repeat `--lora-dataset owner/slug` for each when overriding its inputs. Both Luxury hashes are checked before readiness. Keep the original dataset for existing sessions and the pretrained choice.
+
+Custom settings start at trigger `luxbedstyle`, scale 0.8, strength 0.75, guidance 7.5, 25 steps and the recorded negative prompt. The production image padding remains unchanged; these settings do not establish superiority over SDXL base or guaranteed room-geometry preservation. No retraining is performed by this integration.
+
+Switch jobs pin their requested profile; their published image and active profile change atomically after lease validation. Until successful, the old version/decision remain visible. Rejections, model switching, summaries and retries use the original photo. On failure, retry the same requested profile even after catalog changes or notebook restart. Historic versions and summaries read labels from saved version settings.
+
+**Verified release:** [Luxury-choice smoke v1](https://www.kaggle.com/code/badexample/plania-bedroom-luxury-choice-smoke) completed on two T4s in 591.0 seconds, including initialization, five styles, pretrained/custom Luxury checks, regeneration, comparisons and Spanish summary. The custom hash and original hash matched the catalog, with one active adapter per generation. Custom Luxury generation took 18.8–21.2 s at 25 steps (9.0 GiB peak allocated); original Luxury took 32.8 s at 35 steps (9.41 GiB). The different step counts mean these are runtime measurements of the presets, not a controlled adapter-speed comparison. [Compact evidence](kaggle/luxury_choice_smoke_evidence.json).
+
+The existing [private demo notebook](https://www.kaggle.com/code/badexample/ptdia-bedroom-backend-demo) is saved as **version 6**, with backend **0.2.0** and both datasets, **without starting a demo GPU run**. Stop the previous interactive session, reload the latest saved notebook, start a fresh T4 ×2 session and run its three code cells. Check `/openapi.json` → `info.version` is `0.2.0`; update the frontend origin if ngrok changed. No new secrets are needed. New projects default to Luxury UTEC; verify the selector switches only Luxury and shows a pending V2 before accepting it and requesting the new summary.
+
+Local release checks: 41 backend tests with disposable PostgreSQL, 92 frontend tests, production build, old frontend fixture validation against SessionDetail, and browser→FastAPI→worker→PostgreSQL model-switch flow with controlled Auth/inference. The GPU smoke uses the identical final inference/catalog files; later service/UI review fixes were verified locally. A live authenticated Supabase/Kaggle API restart flow remains the operator's next demo check.
 
 ## Configure a future style
 

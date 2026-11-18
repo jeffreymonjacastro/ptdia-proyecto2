@@ -4,6 +4,20 @@ import { readFileSync } from 'node:fs'
 import { parseSession, toProject } from './remote.ts'
 
 const fixture = () => JSON.parse(readFileSync(new URL('./fixtures/session.json', import.meta.url), 'utf8'))
+test('un cambio de modelo fallido conserva la imagen aceptada y ofrece reintento del modelo solicitado', () => {
+  const raw = fixture()
+  raw.variations[0].luxury_variant = 'custom'
+  raw.variations[0].luxury_variants = [{id:'custom',label:'Luxury UTEC'},{id:'pretrained',label:'Luxury original'}]
+  raw.variations[0].versions[0].decision = 'accepted'
+  raw.variations[0].versions[0].settings = {label:'Luxury UTEC',variant:'custom'}
+  raw.jobs = [{id:'switch',kind:'regenerate',status:'failed',position:1,progress:0,error:'storage_unavailable',luxury_variant:'pretrained'}]
+  const slot = toProject(parseSession(raw)).proposals[0]
+  assert.equal(slot.generation, 'failed')
+  assert.equal(slot.versions[0].status, 'accepted')
+  assert.equal(slot.versions[0].label, 'Luxury UTEC')
+  assert.equal(slot.luxuryVariant, 'custom')
+  assert.equal(slot.luxuryChoices!.length, 2)
+})
 test('el JSON del backend conserva IDs, null como pendiente, imagen privada y seed string', () => {
   const session = parseSession(fixture())
   const project = toProject(session, { client: 'Valeria', room: 'Dormitorio principal' })

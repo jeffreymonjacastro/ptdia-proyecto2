@@ -32,6 +32,7 @@ class Job(BaseModel):
     position: int | None
     progress: int
     error: str | None
+    luxury_variant: Literal["custom", "pretrained"] | None = None
 
 
 class OwnedJob(Job):
@@ -78,6 +79,8 @@ class Variation(BaseModel):
     label: str
     current_version_id: UUID | None
     versions: list[ImageVersion]
+    luxury_variant: Literal["custom", "pretrained"] | None = None
+    luxury_variants: list[dict[str, str]] = Field(default_factory=list)
 
 
 class RejectionEvent(BaseModel):
@@ -116,6 +119,17 @@ class DecisionResult(BaseModel):
 
 class PauseInput(BaseModel):
     paused: bool
+
+
+class LuxuryModelInput(BaseModel):
+    variant: Literal["custom", "pretrained"]
+    version_id: UUID
+
+
+class LuxuryModelResult(BaseModel):
+    session_id: UUID
+    version_id: UUID
+    variant: Literal["custom", "pretrained"]
 
 
 class BodyLimit:
@@ -179,7 +193,7 @@ def respond(result):
 
 
 def create_app(repo, store, authenticate, catalog, models_ready, *, origins=(), lifespan=None):
-    app = FastAPI(title="PlanIA Bedroom Backend", version="0.1.1", lifespan=lifespan)
+    app = FastAPI(title="PlanIA Bedroom Backend", version="0.2.0", lifespan=lifespan)
     app.add_middleware(BodyLimit, limit=BODY_LIMIT)
     if origins:
         app.add_middleware(CORSMiddleware, allow_origins=list(origins),
@@ -217,11 +231,12 @@ def create_app(repo, store, authenticate, catalog, models_ready, *, origins=(), 
 
     @app.post("/api/generations", response_model=SessionLink, status_code=202)
     def submit(user: Owner, key: IdempotencyKey, image: Annotated[UploadFile, File()],
-               consent: Annotated[bool, Form()], preferences: Annotated[str, Form(max_length=2000)] = ""):
+               consent: Annotated[bool, Form()], preferences: Annotated[str, Form(max_length=2000)] = "",
+               luxury_model: Annotated[Literal["custom", "pretrained"] | None, Form()] = None):
         if not consent:
             raise Problem(422, "consent_required")
         data, media_type = read_image(image)
-        return respond(sessions.submit(user, key, data, media_type, preferences.strip()))
+        return respond(sessions.submit(user, key, data, media_type, preferences.strip(), luxury_model))
 
     @app.get("/api/generations", response_model=list[SessionItem])
     def history(user: Owner):
@@ -272,6 +287,12 @@ def create_app(repo, store, authenticate, catalog, models_ready, *, origins=(), 
     def retry_slot(session_id: UUID, position: Annotated[int, Path(ge=1, le=5)], user: Owner, key: IdempotencyKey):
         return respond(sessions.change(user, key, session_id, "retry_slot", position,
                                        lambda conn, row: sessions.retry_slot(conn, row, position)))
+
+    @app.put("/api/generations/{session_id}/luxury-model", response_model=SessionLink, status_code=202,
+             responses={200: {"model": LuxuryModelResult}})
+    def switch_luxury(session_id: UUID, body: LuxuryModelInput, user: Owner, key: IdempotencyKey):
+        return respond(sessions.change(user, key, session_id, "luxury_model", [str(body.version_id), body.variant],
+                                       lambda conn, row: sessions.switch_luxury(conn, row, body.version_id, body.variant)))
 
     @app.post("/api/generations/{session_id}/summary", response_model=Summary, responses={202: {"model": SessionLink}})
     def summary(session_id: UUID, user: Owner, key: IdempotencyKey):

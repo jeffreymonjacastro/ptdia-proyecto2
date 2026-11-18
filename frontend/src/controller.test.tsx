@@ -72,6 +72,26 @@ test('un rechazo confirmado mantiene el job recuperable si falla la lectura inme
   assert.equal(view.result.current.workspace!.projects[0].proposals[0].generation,'generating')
 })
 
+test('cambiar Luxury conserva el job y la elección si falla la lectura posterior', async () => {
+  const raw = fixture()
+  let failRead = false
+  const job = {id:'model-job',kind:'regenerate',status:'queued',position:1,progress:0,error:null,luxury_variant:'pretrained'}
+  const api = new BedroomApi('https://api.example.test',async()=>'token',async(url:any,init:any)=>{
+    if (init.method==='PUT') {failRead=true;return Response.json({session_id:raw.id,job_id:job.id},{status:202})}
+    if (String(url).endsWith('/api/generations')) return Response.json([raw])
+    if (failRead) {failRead=false;return Response.json({detail:'database_unavailable'},{status:503})}
+    return Response.json(raw)
+  })
+  const view=renderHook(()=>useRemoteWorkspace(api,user,signOut))
+  await waitFor(()=>assert.equal(view.result.current.workspace?.projects[0].proposals.length,5))
+  await act(async()=>{await view.result.current.onAction({type:'switch-luxury',position:1,versionId:raw.variations[0].current_version_id,variant:'pretrained'})})
+  const project=view.result.current.workspace!.projects[0]
+  assert.equal(project.jobs![0].luxury_variant,'pretrained')
+  assert.equal(project.proposals[0].generation,'generating')
+  assert.equal(project.proposals[0].requestedLuxuryVariant,'pretrained')
+  assert.equal(project.proposals[0].versions[0].status,'pending')
+})
+
 test('un conflicto 409 recupera la versión vigente antes de permitir otra decisión',async()=>{
   const raw=fixture(),old=raw.variations[0].current_version_id
   const api=new BedroomApi('https://api.example.test',async()=>'t',async(url:any,init:any)=>{

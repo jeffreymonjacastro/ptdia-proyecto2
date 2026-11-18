@@ -28,9 +28,19 @@ Every route below uses the `/api` prefix. In the table, `{id}` is the generation
 | `PATCH /generations/{id}` | JSON `{"paused":true}` or `{"paused":false}`. Available for ready, completed, or paused sessions with no active job. Returns `200 {id, status}`. |
 | `DELETE /generations/{id}` | Returns `202 {session_id, status: "deleting"}`. Remove the session from history immediately. Cleanup runs in the background and its job is hidden from the client. |
 
-Every `POST` and the decision `PUT` require an `Idempotency-Key`. Generate a UUID once per user action. Reuse it when retrying an identical request after a timeout or disconnect. Use a fresh key for a new action, including the explicit retry after a job has failed. A replay can return the original job ID even after that job finishes. Fetch the session to see its current state.
+Every `POST` and every `PUT` require an `Idempotency-Key`. Generate a UUID once per user action. Reuse it when retrying an identical request after a timeout or disconnect. Use a fresh key for a new action, including the explicit retry after a job has failed. A replay can return the original job ID even after that job finishes. Fetch the session to see its current state.
 
 For upload, use browser `FormData` and let `fetch` set its multipart `Content-Type` and boundary.
+
+## Luxury model choice (backend 0.2.0)
+
+There are still exactly five styles and `style_id: "luxury"` stays in position 1. Its default for new sessions is **Luxury UTEC**, the team's custom adapter. Multipart upload accepts optional `luxury_model: "custom" | "pretrained"` (default `custom`). Existing sessions keep their saved weights and settings.
+
+`PUT /api/generations/{id}/luxury-model` takes JSON `{"variant":"pretrained","version_id":"CURRENT-LUXURY-VERSION-UUID"}` and `Idempotency-Key`. Use `"custom"` to switch back. It returns `202 {session_id,job_id}` and queues only Luxury, or `200 {session_id,version_id,variant}` if that model is already current. A stale version, paused session or active job returns `409`; another owner's session returns `404`. Unknown enum values return `422`.
+
+Switching invalidates the current summary/gallery immediately. It does **not** record a rejection or change the other four proposals. Keep the old image and decision visible while generating; the replacement starts pending. A failed switch keeps the old current model and uses the existing slot-retry endpoint with a new idempotency key to retry the same frozen requested settings. A queued, running or failed switch must be resolved before generating a new summary.
+
+Luxury variation metadata adds `luxury_variant` and `luxury_variants: [{id,label}]`. Jobs add nullable `luxury_variant` for model-switch work, allowing progress/failure/retry even if the old version is accepted. `versions[].settings` retains each version's `variant`, label, weight filename/hash and parameters. Use that saved label for historical decisions; the slot label describes its current image. Fields are optional in the frontend adapter for compatibility with older servers; old servers do not support the selection control.
 
 ## Render the review flow
 

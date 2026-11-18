@@ -78,7 +78,8 @@ def sprint():
         pytest.fail("BEDROOM_TEST_DSN must point to the local bedroom_test database")
     with psycopg.connect(dsn, autocommit=True) as conn:
         conn.execute("DROP SCHEMA IF EXISTS bedroom CASCADE")
-        conn.execute((Path(__file__).resolve().parents[1] / "migrations/001_bedroom.sql").read_text())
+        for migration in sorted((Path(__file__).resolve().parents[1] / "migrations").glob("*.sql")):
+            conn.execute(migration.read_text())
     with Repository(dsn) as repo:
         store = Store()
         models = Models()
@@ -126,7 +127,7 @@ def test_lifecycle_and_restart(sprint):
     client, worker, store, models, repo = sprint
     sid = generate(sprint)
     initial = session(client, sid)["variations"]
-    assert [item["label"] for item in initial] == ["Luxury", "Japanese", "Neo Classic", "Attic", "Cyberpunk"]
+    assert [item["label"] for item in initial] == ["Luxury UTEC", "Japanese", "Neo Classic", "Attic", "Cyberpunk"]
     old = initial[3]["current_version_id"]
     reject = decide(client, sid, old, "rejected", "Conservar el techo")
     assert reject.status_code == 202

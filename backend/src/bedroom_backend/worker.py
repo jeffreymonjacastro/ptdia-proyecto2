@@ -114,6 +114,8 @@ class Worker:
             raise JobFailure("invalid_style_catalog")
         if not initial and (len(slots) != 1 or slots[0]["current_version_id"] != job["target_version_id"]):
             raise JobFailure("stale_version")
+        if job.get("requested_profile"):
+            slots[0]["profile"] = job["requested_profile"]
         try:
             original, _ = self.store.get(session["original_key"])
         except Exception as error:
@@ -145,6 +147,9 @@ class Worker:
         with self.repo.transaction() as conn:
             self.require_lease(conn, job)
             for result in results:
+                if job.get("requested_profile"):
+                    conn.execute("UPDATE bedroom.slots SET profile = %s WHERE session_id = %s AND position = %s AND current_version_id = %s",
+                                 (Jsonb(job["requested_profile"]), session["id"], result["position"], job["target_version_id"]))
                 self.repo.insert_version(conn, session["id"], result)
             conn.execute("UPDATE bedroom.sessions SET status = 'ready', revision = revision + 1 WHERE id = %s",
                          (session["id"],))
@@ -183,7 +188,7 @@ class Worker:
             versions = self.repo.snapshot_versions(conn, session["id"])
             rejections = all_rows(conn, """
                 SELECT d.id, v.id AS version_id, v.number, d.reason,
-                    s.profile->>'label' AS label, d.created_at
+                    COALESCE(v.settings->>'label', s.profile->>'label') AS label, d.created_at
                 FROM bedroom.decisions d JOIN bedroom.versions v ON v.id = d.version_id
                 JOIN bedroom.slots s USING (session_id, position)
                 WHERE v.session_id = %s AND d.decision = 'rejected' ORDER BY d.id

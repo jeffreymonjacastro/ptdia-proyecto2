@@ -119,13 +119,14 @@ export function useRemoteWorkspace(api: BedroomApi, account: Account, signOut: (
     setWorkspace(previous => previous && { ...previous, projects:previous.projects.map(p => {
       if (p.id !== id) return p
       const known=p.jobs?.find(j=>j.id===result.job_id)
-      const job:Job|undefined = kind && typeof result.job_id==='string' ? known ?? {id:result.job_id,kind,status:'queued',position,progress:0,error:null} : undefined
+      const job:Job|undefined = kind && typeof result.job_id==='string' ? known ?? {id:result.job_id,kind,status:'queued',position,progress:0,error:null,luxury_variant:result.luxury_variant??null} : undefined
       const running=job && ['queued','running'].includes(job.status)
       return { ...p, status:kind==='initial' ? 'generating' : p.status,
         summary:kind==='summary' && typeof result.summary==='string' ? currentSummary(parseSummary(result),p) : p.summary,
         jobs:job ? [job,...(p.jobs??[]).filter(j=>j.id!==job.id)] : p.jobs,
         proposals:p.proposals.map(slot=>({ ...slot,
           generation:running && kind==='regenerate' && slot.position===position ? 'generating' : slot.generation,
+          requestedLuxuryVariant:running && slot.position===position ? job.luxury_variant ?? undefined : slot.requestedLuxuryVariant,
           versions:slot.versions.map(v=>v.id===result.version_id && ['accepted','rejected'].includes(result.decision) ? {...v,status:result.decision as 'accepted'|'rejected'} : v),
         })),
       }
@@ -136,7 +137,13 @@ export function useRemoteWorkspace(api: BedroomApi, account: Account, signOut: (
     if (!id) return
     const key = `${id}:${'position' in action ? action.position : action.type}`
     await run(key, async () => {
+      let invalidates = ['decide','retry'].includes(action.type)
       if (action.type === 'decide') applyAck(id,await api.decide(id, action.versionId, action.status, action.reason),action.status==='rejected' ? 'regenerate' : undefined,action.position)
+      else if (action.type === 'switch-luxury') {
+        const ack = await api.switchLuxury(id, action.versionId, action.variant)
+        invalidates = !!ack.job_id
+        applyAck(id,{...ack,luxury_variant:action.variant},'regenerate',action.position)
+      }
       else if (action.type === 'retry') applyAck(id,await api.action(id, 'retry', action.position),'regenerate',action.position)
       else if (action.type === 'summarize') applyAck(id,await api.action(id, 'summary'),'summary')
       else if (action.type === 'pause' || action.type === 'resume') {
@@ -145,7 +152,7 @@ export function useRemoteWorkspace(api: BedroomApi, account: Account, signOut: (
         if(alive.current)setWorkspace(previous=>previous&&{...previous,projects:previous.projects.map(p=>p.id===id?{...p,status:ack.status}:p)})
       }
       else throw new Error('Esta acción solo está disponible en la demostración.')
-      setWorkspace(previous => previous && { ...previous, projects: previous.projects.map(p => p.id === id ? { ...p, summary: ['decide','retry'].includes(action.type) ? undefined : p.summary } : p) })
+      setWorkspace(previous => previous && { ...previous, projects: previous.projects.map(p => p.id === id ? { ...p, summary: invalidates ? undefined : p.summary } : p) })
       await reloadAfterWrite(id)
     },id)
   }, [api, run, reloadAfterWrite, applyAck])
@@ -153,7 +160,7 @@ export function useRemoteWorkspace(api: BedroomApi, account: Account, signOut: (
     if (input.photo.kind !== 'upload' || !input.bedroomConfirmed || !input.consent) throw new Error('Selecciona y autoriza una fotografía de dormitorio.')
     const photo=input.photo.blob
     await run('create', async () => {
-      const result = await api.upload(photo, input.preferences, input.consent)
+      const result = await api.upload(photo, input.preferences, input.consent, input.luxuryModel)
       if (!result || typeof result.session_id !== 'string' || typeof result.job_id !== 'string') throw new Error('El backend no devolvió el identificador del proyecto.')
       const id = result.session_id
       listEpoch.current++

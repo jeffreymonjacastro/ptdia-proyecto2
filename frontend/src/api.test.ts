@@ -3,6 +3,20 @@ import assert from 'node:assert/strict'
 import { BedroomApi, ApiError } from './api.ts'
 
 const origin = 'https://bedroom.example.test'
+test('cambiar el modelo Luxury usa JSON con versión y conserva la clave tras un fallo de red', async () => {
+  const calls: RequestInit[] = []
+  const api = new BedroomApi(origin, async () => 'token', async (url: any, init: any) => {
+    assert.ok(String(url).endsWith('/api/generations/s/luxury-model'))
+    calls.push(init)
+    if (calls.length === 1) throw new TypeError('Network error')
+    return Response.json({session_id:'s',job_id:'j'}, {status:202})
+  })
+  await assert.rejects(api.switchLuxury('s','v','pretrained'))
+  await api.switchLuxury('s','v','pretrained')
+  assert.equal(calls[1].method, 'PUT')
+  assert.deepEqual(JSON.parse(String(calls[1].body)), {version_id:'v',variant:'pretrained'})
+  assert.equal(new Headers(calls[0].headers).get('Idempotency-Key'), new Headers(calls[1].headers).get('Idempotency-Key'))
+})
 test('cada petición consulta el bearer vigente y añade la cabecera ngrok', async () => {
   let token = 'primero'
   const sent: Headers[] = []

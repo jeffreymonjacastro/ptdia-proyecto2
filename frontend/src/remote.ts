@@ -1,4 +1,5 @@
 import { STYLE_IDS, currentVersion, type Decision, type Job, type Project, type Style, type Summary } from './domain.ts'
+import type { LuxuryVariant } from './domain.ts'
 
 export type RemoteDecision = { version_id: string; decision: 'accepted' | 'rejected'; reason: string | null; created_at: string }
 export type RemoteVersion = {
@@ -6,7 +7,7 @@ export type RemoteVersion = {
   reason: string | null; settings: Record<string, unknown>; provenance: Record<string, unknown>; created_at: string
   size_bytes: number; image_url: string; decisions: RemoteDecision[]
 }
-export type RemoteVariation = { position: number; style_id: Style; label: string; current_version_id: string | null; versions: RemoteVersion[] }
+export type RemoteVariation = { position: number; style_id: Style; label: string; current_version_id: string | null; versions: RemoteVersion[]; luxury_variant?:LuxuryVariant|null; luxury_variants?:{id:LuxuryVariant;label:string}[] }
 export type RemoteSummary = { revision: number; accepted_version_ids: string[]; rejected_version_ids: string[]; historical_rejections: {version_id:string; reason:string|null; created_at:string}[]; summary: string }
 export type SessionItem = { id: string; status: Project['status']; revision: number; created_at: string }
 export type RemoteSession = SessionItem & { preferences: string; original_image_url: string; variations: RemoteVariation[]; summary: RemoteSummary | null; jobs: Job[] }
@@ -15,6 +16,7 @@ const states = ['generating', 'needs_confirmation', 'rejected', 'failed', 'ready
 const text = (value: unknown): value is string => typeof value === 'string'
 const strings = (value: unknown): value is string[] => Array.isArray(value) && value.every(text)
 const decision = (value: unknown) => value === 'accepted' || value === 'rejected'
+const luxuryVariant = (value: unknown): value is LuxuryVariant => value === 'custom' || value === 'pretrained'
 const problem = () => new Error('El backend devolvió una respuesta de sesión inválida o un lote incompleto.')
 
 export function parseSessionItem(value: unknown): SessionItem {
@@ -27,7 +29,7 @@ export function parseJob(value: unknown): Job {
   if (!job || !text(job.id) || !['initial', 'regenerate', 'summary', 'delete'].includes(job.kind)
     || !['queued', 'running', 'succeeded', 'failed'].includes(job.status) || !Number.isFinite(job.progress)
     || !(job.position === null || (Number.isInteger(job.position) && job.position >= 1 && job.position <= 5))
-    || !(job.error === null || text(job.error))) throw problem()
+    || !(job.error === null || text(job.error)) || (job.luxury_variant != null && !luxuryVariant(job.luxury_variant))) throw problem()
   return job
 }
 export function parseSession(value: unknown): RemoteSession {
@@ -41,6 +43,8 @@ export function parseSession(value: unknown): RemoteSession {
     if (!Number.isInteger(slot.position) || positions.has(slot.position) || slot.position < 1 || slot.position > 5
       || slot.style_id !== STYLE_IDS[slot.position - 1] || !text(slot.label) || !Array.isArray(slot.versions)) throw problem()
     positions.add(slot.position)
+    if (slot.luxury_variant != null && !luxuryVariant(slot.luxury_variant)) throw problem()
+    if (slot.luxury_variants !== undefined && (!Array.isArray(slot.luxury_variants) || slot.luxury_variants.some(option => !option || !luxuryVariant(option.id) || !text(option.label)))) throw problem()
     for (const v of slot.versions) {
       if (!text(v.id) || versionIds.has(v.id) || !Number.isInteger(v.number) || v.number < 1
         || !text(v.prompt) || !text(v.seed) || !text(v.description) || !(v.decision === null || decision(v.decision))
@@ -81,10 +85,14 @@ export function toProject(session: RemoteSession, meta?: ProjectMeta): Project {
     const current = slot.versions.find(v => v.id === slot.current_version_id)!
     return {
       position: slot.position, style: slot.style_id, label: slot.label, currentVersionId: slot.current_version_id!,
+      luxuryVariant: slot.luxury_variant ?? undefined, luxuryChoices: slot.luxury_variants ?? [],
+      requestedLuxuryVariant: latestJob && ['queued','running'].includes(latestJob.status) ? latestJob.luxury_variant ?? undefined : undefined,
       versions: slot.versions.map(v => ({ id: v.id, number: v.number, status: (v.decision ?? 'pending') as Decision,
-        description: v.description, createdAt: v.created_at, imageUrl: v.image_url, seed: v.seed })),
+        description: v.description, createdAt: v.created_at, imageUrl: v.image_url, seed: v.seed,
+        label: typeof v.settings.label === 'string' ? v.settings.label : slot.label,
+        luxuryVariant: luxuryVariant(v.settings.variant) ? v.settings.variant : undefined })),
       generation: (latestJob && ['queued', 'running'].includes(latestJob.status) ? 'generating'
-        : latestJob?.status === 'failed' && current.decision === 'rejected' ? 'failed' : 'idle') as 'generating' | 'failed' | 'idle',
+        : latestJob?.status === 'failed' && (current.decision === 'rejected' || latestJob.luxury_variant) ? 'failed' : 'idle') as 'generating' | 'failed' | 'idle',
     }
   })
   const events = session.variations.flatMap(slot => slot.versions.flatMap(v => v.decisions.map((event, index) => ({

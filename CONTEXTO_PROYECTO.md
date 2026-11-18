@@ -1,6 +1,6 @@
 # Contexto de PTDIA Proyecto 2 para agentes
 
-Actualizado el **17 de noviembre de 2026**, hora de Lima. Esta guía permite continuar sin el historial del chat. Describe la integración implementada y separa las pruebas locales de la conexión externa pendiente. No contiene credenciales ni presupone que Kaggle/ngrok sigan activos.
+Actualizado el **18 de noviembre de 2026**, hora de Lima. Esta guía permite continuar sin el historial del chat. Describe la integración implementada y separa las pruebas locales de la conexión externa pendiente. No contiene credenciales ni presupone que Kaggle/ngrok sigan activos.
 
 ## 1. Empezar aquí
 
@@ -32,6 +32,7 @@ La aplicación **Estudio** ayuda a un diseñador a explorar dormitorios con su c
 
 - Alcance exclusivo de **habitaciones / dormitorios**.
 - Lote completo de exactamente cinco posiciones: `1 luxury` (Luxury), `2 japanese` (Japanese), `3 neo-classic` (Neo Classic), `4 attic` (Attic), `5 cyberpunk` (Cyberpunk).
+- Backend 0.2.0: `luxury` mantiene su ID/posición y ofrece variantes `custom` (Luxury UTEC, predeterminada en sesiones nuevas) y `pretrained` (Luxury original). Se elige en el alta o con `PUT /api/generations/{id}/luxury-model {variant,version_id}` e Idempotency-Key. Cambiar crea otra versión pendiente solo de Luxury, conserva historial y las otras cuatro, e invalida resumen/galería sin inventar un rechazo. Las opciones/parámetros se congelan por sesión/job; fallo conserva imagen/decisión previa para retry. Sesiones antiguas conservan su configuración.
 - Toda versión nueva empieza pendiente. `decision: null` no es rechazo.
 - Las tarjetas renderizan Markdown en las descripciones (negritas, párrafos y listas) mediante `react-markdown`, omitiendo HTML e imágenes incrustadas. Las fotos conservan su descarga autenticada.
 - **Rechazar abre diálogo y exige motivo no vacío**, máximo 500 caracteres en la UI. Cancelar/cerrar no registra nada. Confirmar guarda el motivo sobre esa versión y regenera solo su estilo, conservando las otras cuatro propuestas y decisiones.
@@ -142,6 +143,8 @@ Reglas de adaptación:
 
 ## 8. Backend y operación
 
+Integración Luxury: aplicar 001 + `backend/migrations/002_luxury_model_choice.sql` en bases nuevas; en bases existentes solo 002. La migración aditiva 002 ya se aplicó al proyecto compartido y se comprobaron privilegios de bedroom_app. Adjuntar los dos datasets a Kaggle: el externo existente y `badexample/plania-p2-luxury-utec-sdxl-lora` (público, un solo tensor verificado, manifiesto en `backend/kaggle/custom_lora.json`). No subir a Git la carpeta local `pesos_aporte_fabryzzio`. El frontend conectado permite selección inicial y cambio posterior; la demo conserva sus ejemplos. Consultar FRONTEND.md para los nuevos campos opcionales y la semántica de no-op/error/retry.
+
 [backend/README.md](backend/README.md) describe ejecución, secretos, almacenamiento, Kaggle y verificación autenticada.
 
 - `backend/src/bedroom_backend/api.py`: contratos, CORS y rutas.
@@ -162,12 +165,16 @@ Para pruebas backend usar PostgreSQL **local desechable** y DSN de loopback/base
 
 Verificado durante esta integración:
 
-- **85/86 pruebas frontend** y `npm run build` pasan, incluidas negritas/listas Markdown, galería aprobada, invalidación, descargas/ZIP y cancelación. Suite API/DTO/controlador/UI, más las reglas, fotos y persistencia demo anteriores. Procesos separados por archivo evitan contaminación entre Happy DOM y FormData nativo.
+- **92/92 pruebas frontend** y `npm run build` pasan, incluidas negritas/listas Markdown, galería aprobada, invalidación, descargas/ZIP y cancelación. Suite API/DTO/controlador/UI, más las reglas, fotos y persistencia demo anteriores. Procesos separados por archivo evitan contaminación entre Happy DOM y FormData nativo.
 - Fixture `frontend/src/fixtures/session.json` validado contra el modelo **`SessionDetail`** real del backend.
-- **19/19 pruebas backend** con PostgreSQL 17 local desechable. Sin cambios de contrato backend.
+- **41/41 pruebas backend** con PostgreSQL 17 local desechable, incluidas elección/cambio de modelo, snapshot/retry, leases, resumen durante cambio, propietario y compatibilidad de idempotencia anterior.
 - Navegador contra FastAPI/Repository/Worker reales locales, con **Auth e inferencia controladas de prueba**: acceso A, carga, cinco slots, aceptación, rechazo Attic con motivo, Attic V2 conservando las otras cuatro, cinco aceptaciones, resumen del servidor con rechazo histórico, recarga y cuenta B sin proyectos de A. No es evidencia GPU ni Supabase remoto.
 - Revisión independiente de la integración completada; corregidos conflictos 409, carreras de historial/cuenta, borrado en estados iniciales, fallos/ACK del resumen, pausa confirmada, redirecciones privadas y borradores separados de aceptación/rechazo mediante 17 regresiones RED→GREEN. El modo sin configuración conserva la demo claramente etiquetada; un API incompleto nunca cae a demo.
 - Correcciones previas verificadas con pruebas que fallaron antes: clave ante ACK incompleto, job tras fallo de lectura posterior, imagen sin ruta, botones de imagen anidados y receptor nativo de `fetch` en navegador.
+
+Integración Luxury 0.2.0: navegador contra API/PostgreSQL/Worker locales reales e inferencia/Auth controladas; switch de Luxury a V2 con cuatro V1 intactas, acceso a V1 desde historial sin decisiones inventadas, aceptación de V2 y resumen/galería actualizados. Revisión independiente completada y cuatro hallazgos corregidos mediante regresiones RED→GREEN.
+
+GPU Luxury: `badexample/plania-bedroom-luxury-choice-smoke` v1 COMPLETE, reporte interno `complete`, dos T4, 591.0 s. Cinco estilos, hashes propios/externos, un adaptador activo por llamada, regeneración y resumen español comprobados. Evidencia compacta en `backend/kaggle/luxury_choice_smoke_evidence.json`. Notebook privado `badexample/ptdia-bedroom-backend-demo` guardado v6 sin ejecutar, wheel0.2.0 y dos datasets; el operador debe recargarlo y comenzar sesión nueva T4×2, ejecutar tres celdas, comprobar info.version0.2.0 y actualizar origen ngrok si cambió. No nuevos secretos.
 
 Corrección posterior de resúmenes (backend 0.1.1): la selección y validación usan pasajes visuales sin preámbulos, títulos ni numeración Markdown. Si una descripción solo contiene una introducción, se conserva la decisión y el motivo sin añadir una observación visual. Los resúmenes ya guardados se conservan; el usuario puede borrar el proyecto de prueba antiguo. Verificación posterior: 34 pruebas backend y regresión Qwen real en dos T4 con descripciones sintéticas que contienen el preámbulo. Activar la versión nueva del notebook para comprobar el cambio en sesiones nuevas.
 

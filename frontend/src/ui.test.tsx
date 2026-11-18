@@ -22,6 +22,20 @@ const { useWorkspace } = await import('./useWorkspace.ts')
 afterEach(() => cleanup())
 const example = () => createProject({ client: 'Valeria', room: 'Dormitorio', preferences: '', photo: { kind: 'example', name: 'ejemplo.jpg' }, consent: true, bedroomConfirmed: true })
 
+test('solo Luxury ofrece los dos modelos y el cambio solicita una nueva versión sin rechazar', () => {
+  const proposal = example().proposals[0]
+  proposal.luxuryVariant = 'custom'
+  proposal.luxuryChoices = [{id:'custom',label:'Luxury UTEC'},{id:'pretrained',label:'Luxury original'}]
+  const actions: ProjectAction[] = []
+  const view = render(createElement(ProposalCard, {proposal, connected:true, paused:false, onAction: action => { actions.push(action) }, onPreview() {}}))
+  const choice = view.getByRole('combobox', {name:'Modelo de Luxury'})
+  assert.equal((choice as HTMLSelectElement).value, 'custom')
+  fireEvent.change(choice, {target:{value:'pretrained'}})
+  assert.deepEqual(actions, [{type:'switch-luxury',position:1,versionId:proposal.versions[0].id,variant:'pretrained'}])
+  view.rerender(createElement(ProposalCard, {proposal, connected:true, paused:true, onAction() {}, onPreview() {}}))
+  assert.equal((view.getByRole('combobox', {name:'Modelo de Luxury'}) as HTMLSelectElement).disabled, true)
+})
+
 test('la descripción muestra negritas y listas Markdown', () => {
   const project = example()
   currentVersion(project.proposals[0]).description = 'Cambios visibles:\n\n* **Iluminación:** Luz cálida.\n* **Colores:** Tonos beige.'
@@ -221,6 +235,30 @@ function completedProject() {
   project.proposals.forEach(proposal => { currentVersion(proposal).imageUrl = `/api/generations/${project.id}/versions/${currentVersion(proposal).id}/image` })
   return updateProject(project, { type: 'summarize' })
 }
+
+test('Luxury deshabilita el selector cuando otro estilo tiene un job activo', () => {
+  const p = completedProject()
+  p.proposals[0].luxuryVariant = 'custom'
+  p.proposals[0].luxuryChoices = [{id:'custom',label:'Luxury UTEC'},{id:'pretrained',label:'Luxury original'}]
+  p.jobs = [{id:'attic-job',kind:'regenerate',position:4,status:'queued',progress:0,error:null}]
+  const view = render(createElement(App, {remote:remoteView(p)}))
+  assert.equal((view.getByRole('combobox', {name:'Modelo de Luxury'}) as HTMLSelectElement).disabled, true)
+})
+
+test('el historial permite ver versiones sustituidas sin registrar decisiones', async () => {
+  const {ImageContext} = await import('./PrivateImage.tsx')
+  const p = completedProject()
+  p.events = []
+  const slot = p.proposals[0]
+  slot.versions[0].status = 'pending'
+  slot.versions[0].label = 'Luxury UTEC'
+  slot.versions.push({...slot.versions[0],id:'replacement',number:2,label:'Luxury original',imageUrl:'/versions/new/image'})
+  const view = render(createElement(ImageContext.Provider, {value:async()=>new Blob(['photo'],{type:'image/png'})}, createElement(History,{project:p,onClose(){}})))
+  fireEvent.click(view.getByRole('button', {name:'Ver imagen Luxury UTEC, versión 1'}))
+  await waitFor(()=>assert.ok(view.getByRole('img', {name:'Luxury UTEC, versión 1'})))
+  assert.ok(view.getAllByText('Sin decisión registrada').length > 0)
+  assert.equal(p.events.length,0)
+})
 
 test('la galería aparece después del resumen con cinco versiones aprobadas y abre su vista ampliada', () => {
   const project = completedProject()

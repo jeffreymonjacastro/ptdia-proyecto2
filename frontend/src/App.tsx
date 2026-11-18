@@ -150,7 +150,7 @@ function Workbench({ project, onAction, onNew, onDelete, connected = false, savi
         <section className="assistant-message" aria-label="Propuestas de diseño">
           <div className="assistant-heading"><Mark /><div><strong>Cinco maneras de habitar el mismo espacio.</strong><p>Revisemos colores, materiales e iluminación. Tú y tu cliente deciden.</p></div></div>
           <div className="proposals-grid">
-            {project.proposals.map(proposal => <ProposalCard key={proposal.position} proposal={proposal} paused={paused} onAction={onAction} onPreview={() => setPreview(proposal.style)} connected={connected}/>)}
+            {project.proposals.map(proposal => <ProposalCard key={proposal.position} proposal={proposal} paused={paused} onAction={onAction} onPreview={() => setPreview(proposal.style)} connected={connected} modelBusy={connected && (saving || activeJobs(project).length > 0)}/>)}
             <div className="gallery-note"><span className="line-decoration" /><Icon name="bed" size={28} /><p>La misma habitación.<br /><em>Una nueva perspectiva.</em></p><span>5 estilos · tu criterio</span></div>
           </div>
           <p className="demo-gallery-caption"><Icon name="info" size={13} />{connected ? 'Propuestas generadas desde tu fotografía. Revisa la distribución y los detalles antes de aceptar.' : 'Imágenes de ejemplo. La demo no transforma tu fotografía; cada regeneración reutiliza el mismo ejemplo.'}</p>
@@ -163,12 +163,12 @@ function Workbench({ project, onAction, onNew, onDelete, connected = false, savi
         {rejected.length > 0 && <details className="rejections-summary"><summary><Icon name="clock" size={15} />{rejected.length} {rejected.length === 1 ? 'rechazo registrado' : 'rechazos registrados'}<Icon name="chevron" size={13} /></summary><ul>{rejected.map(event => {
           const p = project.proposals.find(p => p.position === event.position)!
           const v = p.versions.find(v => v.id === event.versionId)!
-          return <li key={event.id}><span>{STYLES[p.style].name} · V{v.number}</span>{event.reason || 'Sin motivo indicado.'}</li>
+          return <li key={event.id}><span>{v.label || p.label || STYLES[p.style].name} · V{v.number}</span>{event.reason || 'Sin motivo indicado.'}</li>
         })}</ul></details>}
         {project.summary && <section className="final-summary" aria-label="Resumen final de la sesión"><div className="final-summary-heading"><Mark /><div><p className="eyebrow">SELECCIÓN COMPLETADA</p><h2>Un dormitorio, cinco posibilidades.</h2></div><button className="icon-button" onClick={() => void copySummary()} aria-label="Copiar resumen"><Icon name="copy" size={17} /></button></div>
           <p>{connected ? 'Las cinco propuestas actuales están aceptadas. Resumen recuperado del registro de tu proyecto.' : 'Las cinco propuestas actuales están aceptadas. Este resumen de demostración refleja el registro de decisiones.'}</p>
           {connected && <p className="remote-summary-text">{project.summary.text}</p>}
-          <div className="accepted-styles">{project.proposals.map(p => <span key={p.position}><Icon name="check" size={13} />{STYLES[p.style].name} · V{currentVersion(p).number}</span>)}</div>
+          <div className="accepted-styles">{project.proposals.map(p => <span key={p.position}><Icon name="check" size={13} />{currentVersion(p).label || p.label || STYLES[p.style].name} · V{currentVersion(p).number}</span>)}</div>
           <p className="muted">{rejected.length ? `${rejected.length === 1 ? 'Se conserva 1 rechazo' : `Se conservan ${rejected.length} rechazos`} en el historial, con sus motivos cuando se indicaron.` : 'No se registraron rechazos.'} No se atribuyen preferencias adicionales.</p>
           <details><summary>Ver registro del resumen</summary><pre>{project.summary.text}</pre></details>{copyStatus && <p role="status" className="copy-status">{copyStatus}</p>}
         </section>}
@@ -181,7 +181,7 @@ function Workbench({ project, onAction, onNew, onDelete, connected = false, savi
       <button type="submit" className="send-button" disabled={paused || !prompt.trim()} aria-label="Enviar preferencias"><Icon name="arrow" size={19} /></button></form>}
       <p className="composer-caption">Solo dormitorios<span>·</span>Tú y tu cliente tienen la última palabra.<span className="composer-demo">{connected ? 'Tu cuenta' : 'Demo local'}</span></p>
     </footer>
-    {preview && <Dialog title={preview === 'original' ? 'Fotografía original' : `${STYLES[preview].name} · Versión ${currentVersion(project.proposals.find(p => p.style === preview)!).number}`} eyebrow={preview === 'original' ? project.photo.name : connected ? 'PROPUESTA DE TU PROYECTO' : 'PROPUESTA DE EJEMPLO'} onClose={() => setPreview(null)} wide>
+    {preview && <Dialog title={preview === 'original' ? 'Fotografía original' : `${currentVersion(project.proposals.find(p => p.style === preview)!).label || project.proposals.find(p => p.style === preview)!.label || STYLES[preview].name} · Versión ${currentVersion(project.proposals.find(p => p.style === preview)!).number}`} eyebrow={preview === 'original' ? project.photo.name : connected ? 'PROPUESTA DE TU PROYECTO' : 'PROPUESTA DE EJEMPLO'} onClose={() => setPreview(null)} wide>
       {preview === 'original' ? <PhotoImage photo={project.photo} className="preview-image" /> : connected ? <PrivateImage path={currentVersion(project.proposals.find(p => p.style === preview)!).imageUrl!} alt={`Propuesta ${STYLES[preview].name}`} className="preview-image"/> : <RoomImage style={preview} className="preview-image" />}
       <p className="preview-caption">{connected ? 'Imagen privada de tu proyecto.' : preview === 'original' && project.photo.kind === 'upload' ? 'Fotografía guardada únicamente en este navegador.' : 'Imagen ilustrativa del mockup; no es una transformación generada de tu fotografía.'}</p>
     </Dialog>}

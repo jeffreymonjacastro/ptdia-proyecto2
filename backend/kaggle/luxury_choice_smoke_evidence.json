@@ -1,0 +1,120 @@
+{
+  "kernel": "badexample/plania-bedroom-luxury-choice-smoke",
+  "kernel_version": 1,
+  "status": "complete",
+  "backend_version": "0.2.0",
+  "scope": "GPU inference files models.py/catalog.py/styles.json/smoke.py match final source; API/service changes verified locally separately.",
+  "devices": [
+    "Tesla T4",
+    "Tesla T4"
+  ],
+  "dependencies": {
+    "torch": "2.11.0+cu130",
+    "transformers": "5.20.2",
+    "diffusers": "0.42.1",
+    "peft": "0.21.2",
+    "accelerate": "1.15.0"
+  },
+  "elapsed_seconds": 591.033,
+  "generation_metrics": [
+    {
+      "stage": "generation",
+      "style": "luxury",
+      "lora_sha256": "aad41fa2c1ab8a7b044a9e3acebb8651f562baa658f72262a99d242e4b5cc05b",
+      "active_adapters": [
+        "luxury"
+      ],
+      "seconds": 18.752,
+      "peak_bytes": 9668786176
+    },
+    {
+      "stage": "generation",
+      "style": "japanese",
+      "lora_sha256": "c93996489076ae3806bfb26badf24b70ff7a333b39a3a112b9b0f55829059505",
+      "active_adapters": [
+        "japanese"
+      ],
+      "seconds": 28.829,
+      "peak_bytes": 10103592960
+    },
+    {
+      "stage": "generation",
+      "style": "neo-classic",
+      "lora_sha256": "9c5011fe208b773145e7d16246ed3acf041c76a73ef0878278f6aa8432902da3",
+      "active_adapters": [
+        "neo-classic"
+      ],
+      "seconds": 29.726,
+      "peak_bytes": 10102675456
+    },
+    {
+      "stage": "generation",
+      "style": "attic",
+      "lora_sha256": "2ca188e2c84ec75fa1cfeb7c7680d9544f9e305d71efd328d8d9f33718016587",
+      "active_adapters": [
+        "attic"
+      ],
+      "seconds": 29.771,
+      "peak_bytes": 9873594368
+    },
+    {
+      "stage": "generation",
+      "style": "cyberpunk",
+      "lora_sha256": "bdaf1c483d271f139b13c0257f7b2f885457910a7e1abca7ae2fce49b43a6048",
+      "active_adapters": [
+        "cyberpunk"
+      ],
+      "seconds": 31.734,
+      "peak_bytes": 9873594368
+    },
+    {
+      "stage": "generation",
+      "style": "luxury",
+      "lora_sha256": "69d9d48de82bc3b7f811f3bb4900dc762f5f4d7e60e4cb1ca31af01237130801",
+      "active_adapters": [
+        "luxury"
+      ],
+      "seconds": 32.827,
+      "peak_bytes": 10103592960
+    },
+    {
+      "stage": "generation",
+      "style": "luxury",
+      "lora_sha256": "aad41fa2c1ab8a7b044a9e3acebb8651f562baa658f72262a99d242e4b5cc05b",
+      "active_adapters": [
+        "luxury"
+      ],
+      "seconds": 21.182,
+      "peak_bytes": 9668786176
+    },
+    {
+      "stage": "generation",
+      "style": "attic",
+      "lora_sha256": "2ca188e2c84ec75fa1cfeb7c7680d9544f9e305d71efd328d8d9f33718016587",
+      "active_adapters": [
+        "attic"
+      ],
+      "seconds": 31.014,
+      "peak_bytes": 9873594368
+    }
+  ],
+  "luxury_variants": [
+    {
+      "variant": "pretrained",
+      "lora_sha256": "69d9d48de82bc3b7f811f3bb4900dc762f5f4d7e60e4cb1ca31af01237130801",
+      "bytes": 858344
+    },
+    {
+      "variant": "custom",
+      "lora_sha256": "aad41fa2c1ab8a7b044a9e3acebb8651f562baa658f72262a99d242e4b5cc05b",
+      "bytes": 955311
+    }
+  ],
+  "all_five_styles": true,
+  "adapter_isolation": true,
+  "spanish_summary_and_recorded_rejection": true,
+  "demo_kernel": "badexample/ptdia-bedroom-backend-demo",
+  "demo_kernel_version": 6,
+  "demo_saved_without_running": true,
+  "demo_wheel_sha256": "353e9bc1c1cf269136724def02f46674b5ca73aad1fc980d39954d51675b5cc3"
+}

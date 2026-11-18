@@ -46,7 +46,8 @@ class Repository:
 
     def ready(self):
         with self.transaction() as conn:
-            one(conn, "SELECT id FROM bedroom.sessions LIMIT 1")
+            one(conn, "SELECT profile_options FROM bedroom.slots LIMIT 1")
+            one(conn, "SELECT requested_profile FROM bedroom.jobs LIMIT 1")
         return True
 
     def claim(self, *, only_delete=False):
@@ -76,12 +77,12 @@ class Repository:
             """, (job["id"], job["lease_token"])))
 
     @staticmethod
-    def enqueue(conn, session_id, kind, *, position=None, version_id=None, revision=None, feedback=None):
+    def enqueue(conn, session_id, kind, *, position=None, version_id=None, revision=None, feedback=None, requested_profile=None):
         job_id = uuid4()
         conn.execute("""
-            INSERT INTO bedroom.jobs (id, session_id, kind, position, target_version_id, history_revision, feedback)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """, (job_id, session_id, kind, position, version_id, revision, feedback))
+            INSERT INTO bedroom.jobs (id, session_id, kind, position, target_version_id, history_revision, feedback, requested_profile)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """, (job_id, session_id, kind, position, version_id, revision, feedback, Jsonb(requested_profile) if requested_profile else None))
         return job_id
 
     @staticmethod
@@ -108,7 +109,7 @@ class Repository:
     def snapshot_versions(conn, session_id):
         return all_rows(conn, """
             SELECT v.*, d.decision, d.reason, d.id AS decision_id,
-                v.id = s.current_version_id AS current, s.profile->>'label' AS label
+                v.id = s.current_version_id AS current, COALESCE(v.settings->>'label', s.profile->>'label') AS label
             FROM bedroom.versions v JOIN bedroom.slots s USING (session_id, position)
             LEFT JOIN LATERAL (
                 SELECT id, decision, reason FROM bedroom.decisions WHERE version_id = v.id ORDER BY id DESC LIMIT 1

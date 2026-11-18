@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react'
-import { createProject, type Photo, type Project, type ProjectInput } from './domain.ts'
+import { createProject, type Photo, type Project, type ProjectInput, type LuxuryVariant } from './domain.ts'
 import { Dialog, Icon, PhotoImage } from './components.tsx'
 import { readPhoto } from './photos.ts'
 
@@ -39,7 +39,7 @@ export function ProjectForm({ onClose, onCreate, onSubmitRemote }: { onClose: ()
     try {
       if (!photo) throw new Error('Selecciona una fotografía de dormitorio.')
       const input = { client: String(data.get('client') || ''), room: String(data.get('room') || ''),
-        preferences: String(data.get('preferences') || ''), photo, consent: data.has('consent'), bedroomConfirmed: data.has('bedroom') }
+        preferences: String(data.get('preferences') || ''), photo, consent: data.has('consent'), bedroomConfirmed: data.has('bedroom'), luxuryModel: String(data.get('luxury_model') || 'custom') as LuxuryVariant }
       if (!input.client.trim()) throw new Error('Escribe el nombre del cliente.')
       if (onSubmitRemote) {
         setCreating(true)
@@ -67,6 +67,7 @@ export function ProjectForm({ onClose, onCreate, onSubmitRemote }: { onClose: ()
         <input ref={fileInput} className="sr-only" type="file" accept="image/jpeg,image/png,image/webp" aria-label="Seleccionar fotografía de dormitorio" onChange={event => { void chooseFile(event.target.files?.[0]); event.target.value = '' }} />
         <div className="upload-caption"><span>JPG, PNG o WebP · hasta 10 MB y 25 MP</span>{!onSubmitRemote && (photo?.kind === 'upload' || error) && <button type="button" className="text-button" onClick={useExample}>Usar el ejemplo</button>}</div>
         <label>Preferencias <span className="optional">opcional</span><textarea name="preferences" placeholder="Colores, materiales, iluminación o elementos que quieren conservar…" rows={3} maxLength={2000} /></label>
+        {onSubmitRemote && <label>Modelo de Luxury<select name="luxury_model" defaultValue="custom"><option value="custom">Luxury UTEC · propio (predeterminado)</option><option value="pretrained">Luxury original</option></select><span className="muted">También podrás cambiarlo después. Los otros cuatro estilos se conservan.</span></label>}
         <div className="scope-note"><Icon name="bed" size={20} /><div><strong>Solo habitaciones / dormitorios</strong><p>{onSubmitRemote ? 'Incluye la cama y una vista clara de la habitación.' : 'La demo no identifica el contenido de tu foto. Confirma que es un dormitorio.'}</p></div></div>
         <label className="checkbox-label"><input type="checkbox" name="bedroom" checked={confirmed} onChange={event => setConfirmed(event.target.checked)} required /><span>Confirmo que la fotografía muestra un dormitorio.</span></label>
         <label className="checkbox-label"><input type="checkbox" name="consent" checked={consent} onChange={event => setConsent(event.target.checked)} required /><span>{onSubmitRemote ? 'Tengo autorización para enviar esta foto y guardar las propuestas y decisiones de forma privada en mi cuenta. Puedo eliminar el proyecto cuando quiera.' : 'Tengo autorización para usar esta foto y guardarla con las decisiones en este navegador. Puedo eliminar el proyecto cuando quiera.'}</span></label>
